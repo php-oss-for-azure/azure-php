@@ -40,7 +40,7 @@
   },
   "require-dev": {
     "ext-zlib": "*",
-    "guzzlehttp/test-server": "^0.1.0",
+    "guzzlehttp/test-server": "^0.1.0 || ^0.4.0",
     "laravel/pint": "1.20.0",
     "league/flysystem-adapter-test-utilities": "^3.28",
     "orchestra/testbench": "^8.27",
