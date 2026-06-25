@@ -6,12 +6,15 @@ namespace AzureOss\Storage\Tests\Blob\Feature;
 
 use AzureOss\Storage\Blob\BlobClient;
 use AzureOss\Storage\Blob\Exceptions\BlobNotFoundException;
+use AzureOss\Storage\Blob\Exceptions\BlobStorageException;
 use AzureOss\Storage\Blob\Exceptions\CannotVerifyCopySourceException;
 use AzureOss\Storage\Blob\Exceptions\ContainerNotFoundException;
 use AzureOss\Storage\Blob\Exceptions\NoPendingCopyOperationException;
 use AzureOss\Storage\Blob\Exceptions\TagsTooLargeException;
 use AzureOss\Storage\Blob\Models\BlobHttpHeaders;
+use AzureOss\Storage\Blob\Models\BlobRequestConditions;
 use AzureOss\Storage\Blob\Models\CopyStatus;
+use AzureOss\Storage\Blob\Models\DownloadBlobOptions;
 use AzureOss\Storage\Blob\Models\UploadBlobOptions;
 use AzureOss\Storage\Blob\Sas\BlobSasBuilder;
 use AzureOss\Storage\Blob\Sas\BlobSasPermissions;
@@ -45,6 +48,45 @@ final class BlobClientTest extends TestCase
         self::assertEquals($result->properties->contentLength, strlen($content));
         self::assertEquals('text/plain', $result->properties->contentType);
         self::assertEquals($content, $result->content->getContents());
+    }
+
+    #[Test]
+    public function download_stream_with_matching_etag_condition_works(): void
+    {
+        $container = $this->tempContainer();
+        $blob = $container->getBlobClient('test');
+
+        $content = 'original';
+        $blob->upload($content);
+        $eTag = $blob->getProperties()->eTag;
+
+        self::assertNotNull($eTag);
+
+        $result = $blob->downloadStreaming(new DownloadBlobOptions(
+            conditions: new BlobRequestConditions(ifMatch: $eTag),
+        ));
+
+        self::assertSame($content, $result->content->getContents());
+    }
+
+    #[Test]
+    public function download_stream_with_stale_etag_condition_fails(): void
+    {
+        $container = $this->tempContainer();
+        $blob = $container->getBlobClient('test');
+
+        $blob->upload('original');
+        $staleETag = $blob->getProperties()->eTag;
+
+        self::assertNotNull($staleETag);
+
+        $blob->upload('updated');
+
+        $this->expectException(BlobStorageException::class);
+
+        $blob->downloadStreaming(new DownloadBlobOptions(
+            conditions: new BlobRequestConditions(ifMatch: $staleETag),
+        ));
     }
 
     #[Test]
@@ -197,6 +239,104 @@ final class BlobClientTest extends TestCase
         $afterUploadContent = $blob->downloadStreaming()->content->getContents();
 
         self::assertEquals($beforeUploadContent, $afterUploadContent);
+    }
+
+    #[Test]
+    public function upload_with_matching_etag_condition_works(): void
+    {
+        $container = $this->tempContainer();
+        $blob = $container->getBlobClient('test');
+
+        $blob->upload('original');
+        $eTag = $blob->getProperties()->eTag;
+
+        self::assertNotNull($eTag);
+
+        $blob->upload('updated', new UploadBlobOptions(
+            conditions: new BlobRequestConditions(ifMatch: $eTag),
+        ));
+
+        self::assertSame('updated', $blob->downloadStreaming()->content->getContents());
+    }
+
+    #[Test]
+    public function upload_with_stale_etag_condition_fails(): void
+    {
+        $container = $this->tempContainer();
+        $blob = $container->getBlobClient('test');
+
+        $blob->upload('original');
+        $staleETag = $blob->getProperties()->eTag;
+
+        self::assertNotNull($staleETag);
+
+        $blob->upload('updated');
+
+        try {
+            $blob->upload('should-not-write', new UploadBlobOptions(
+                conditions: new BlobRequestConditions(ifMatch: $staleETag),
+            ));
+
+            self::fail('Expected stale ETag upload to fail.');
+        } catch (BlobStorageException) {
+            self::assertSame('updated', $blob->downloadStreaming()->content->getContents());
+        }
+    }
+
+    #[Test]
+    public function upload_to_leased_blob_requires_matching_lease_id(): void
+    {
+        $container = $this->tempContainer();
+        $blob = $container->getBlobClient('test');
+
+        $blob->upload('original');
+        $leaseClient = $blob->getBlobLeaseClient();
+        $lease = $leaseClient->acquire(15);
+
+        try {
+            try {
+                $blob->upload('should-not-write');
+
+                self::fail('Expected upload without lease ID to fail.');
+            } catch (BlobStorageException) {
+                self::assertSame('original', $blob->downloadStreaming()->content->getContents());
+            }
+
+            $blob->upload('updated', new UploadBlobOptions(
+                conditions: new BlobRequestConditions(leaseId: $lease->leaseId),
+            ));
+
+            self::assertSame('updated', $blob->downloadStreaming()->content->getContents());
+        } finally {
+            $leaseClient->release();
+        }
+    }
+
+    #[Test]
+    public function download_from_leased_blob_with_matching_lease_id_works_and_wrong_lease_id_fails(): void
+    {
+        $container = $this->tempContainer();
+        $blob = $container->getBlobClient('test');
+
+        $blob->upload('content');
+        $leaseClient = $blob->getBlobLeaseClient();
+        $lease = $leaseClient->acquire(15);
+
+        try {
+            $result = $blob->downloadStreaming(new DownloadBlobOptions(
+                conditions: new BlobRequestConditions(leaseId: $lease->leaseId),
+            ));
+
+            self::assertSame('content', $result->content->getContents());
+
+            $this->expectException(BlobStorageException::class);
+
+            $blob->downloadStreaming(new DownloadBlobOptions(
+                conditions: new BlobRequestConditions(leaseId: '11111111-1111-4111-8111-111111111111'),
+            ));
+        } finally {
+            $leaseClient->release();
+        }
     }
 
     #[Test]
