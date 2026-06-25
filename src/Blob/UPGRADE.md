@@ -12,6 +12,28 @@ composer require azure-oss/storage-blob:^2.0
 
 This release also requires `azure-oss/storage-common:^2.0`. Composer will update that dependency automatically unless your application requires `azure-oss/storage-common` directly, in which case update that constraint too.
 
+### Options arguments
+
+Blob methods no longer accept `null` for optional options arguments. Omit the argument to use the default options, or pass an options object explicitly.
+
+Before:
+
+```php
+$blobClient->upload($contents, null);
+$containerClient->create(null);
+```
+
+After:
+
+```php
+$blobClient->upload($contents);
+$containerClient->create();
+
+// Or pass options explicitly:
+$blobClient->upload($contents, new UploadBlobOptions);
+$containerClient->create(new CreateContainerOptions);
+```
+
 ### Blob service exceptions
 
 Blob service errors are now represented by `BlobStorageException` and `BlobErrorCode` instead of one exception class per Azure error code.
