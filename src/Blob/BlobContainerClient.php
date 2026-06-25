@@ -26,6 +26,7 @@ use AzureOss\Storage\Blob\Models\TaggedBlob;
 use AzureOss\Storage\Blob\Responses\FindBlobsByTagBody;
 use AzureOss\Storage\Blob\Responses\ListBlobsResponseBody;
 use AzureOss\Storage\Blob\Sas\BlobSasBuilder;
+use AzureOss\Storage\Blob\Specialized\BlobLeaseClient;
 use AzureOss\Storage\Blob\Specialized\BlockBlobClient;
 use AzureOss\Storage\Common\Auth\StorageSharedKeyCredential;
 use AzureOss\Storage\Common\Middleware\ClientFactory;
@@ -85,6 +86,11 @@ final class BlobContainerClient
             $this->getBlobUri($blobName),
             $this->credential,
         );
+    }
+
+    public function getBlobLeaseClient(?string $leaseId = null): BlobLeaseClient
+    {
+        return new BlobLeaseClient($this->uri, $this->credential, $leaseId, container: true);
     }
 
     private function getBlobUri(string $blobName): UriInterface

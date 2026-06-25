@@ -13,6 +13,7 @@ final class BlobRequestConditions
         public ?\DateTimeInterface $ifModifiedSince = null,
         public ?ETag $ifNoneMatch = null,
         public ?\DateTimeInterface $ifUnmodifiedSince = null,
+        public ?string $leaseId = null,
     ) {}
 
     /**
@@ -22,7 +23,8 @@ final class BlobRequestConditions
      *     If-Match?: string,
      *     If-Modified-Since?: string,
      *     If-None-Match?: string,
-     *     If-Unmodified-Since?: string
+     *     If-Unmodified-Since?: string,
+     *     x-ms-lease-id?: string
      * }
      */
     public function toHeaders(): array
@@ -32,6 +34,7 @@ final class BlobRequestConditions
             'If-Modified-Since' => $this->ifModifiedSince !== null ? self::formatDate($this->ifModifiedSince) : null,
             'If-None-Match' => $this->ifNoneMatch !== null ? (string) $this->ifNoneMatch : null,
             'If-Unmodified-Since' => $this->ifUnmodifiedSince !== null ? self::formatDate($this->ifUnmodifiedSince) : null,
+            'x-ms-lease-id' => $this->leaseId,
         ], fn ($value) => $value !== null);
     }
 
@@ -42,7 +45,8 @@ final class BlobRequestConditions
      *     x-ms-source-if-match?: string,
      *     x-ms-source-if-modified-since?: string,
      *     x-ms-source-if-none-match?: string,
-     *     x-ms-source-if-unmodified-since?: string
+     *     x-ms-source-if-unmodified-since?: string,
+     *     x-ms-source-lease-id?: string
      * }
      */
     public function toSourceHeaders(): array
@@ -52,6 +56,7 @@ final class BlobRequestConditions
             'x-ms-source-if-modified-since' => $this->ifModifiedSince !== null ? self::formatDate($this->ifModifiedSince) : null,
             'x-ms-source-if-none-match' => $this->ifNoneMatch !== null ? (string) $this->ifNoneMatch : null,
             'x-ms-source-if-unmodified-since' => $this->ifUnmodifiedSince !== null ? self::formatDate($this->ifUnmodifiedSince) : null,
+            'x-ms-source-lease-id' => $this->leaseId,
         ], fn ($value) => $value !== null);
     }
 

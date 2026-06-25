@@ -145,15 +145,22 @@ final class ConditionalRequestHeadersTest extends TestCase
         $this->blob->upload('test', new UploadBlobOptions(
             initialTransferSize: 0,
             maximumTransferSize: 8_000_000,
-            conditions: new BlobRequestConditions(ifMatch: new ETag('"blob-etag"')),
+            conditions: new BlobRequestConditions(
+                ifMatch: new ETag('"blob-etag"'),
+                leaseId: '11111111-1111-4111-8111-111111111111',
+            ),
         ));
 
         $requests = Server::received();
 
         self::assertCount(2, $requests);
         parse_str($requests[1]->getUri()->getQuery(), $query);
+        parse_str($requests[0]->getUri()->getQuery(), $stageBlockQuery);
+        self::assertSame('block', $stageBlockQuery['comp'] ?? null);
+        self::assertSame('11111111-1111-4111-8111-111111111111', $requests[0]->getHeaderLine('x-ms-lease-id'));
         self::assertSame('blocklist', $query['comp'] ?? null);
         self::assertSame('"blob-etag"', $requests[1]->getHeaderLine('If-Match'));
+        self::assertSame('11111111-1111-4111-8111-111111111111', $requests[1]->getHeaderLine('x-ms-lease-id'));
     }
 
     #[Test]
@@ -166,7 +173,10 @@ final class ConditionalRequestHeadersTest extends TestCase
 
         $this->blob->syncCopyFromUri(new Uri('https://example.test/source'), new SyncCopyFromUriOptions(
             destinationConditions: new BlobRequestConditions(ifMatch: new ETag('"destination-etag"')),
-            sourceConditions: new BlobRequestConditions(ifNoneMatch: new ETag('"source-etag"')),
+            sourceConditions: new BlobRequestConditions(
+                ifNoneMatch: new ETag('"source-etag"'),
+                leaseId: '22222222-2222-4222-8222-222222222222',
+            ),
         ));
 
         $requests = Server::received();
@@ -174,6 +184,7 @@ final class ConditionalRequestHeadersTest extends TestCase
         self::assertCount(1, $requests);
         self::assertSame('"destination-etag"', $requests[0]->getHeaderLine('If-Match'));
         self::assertSame('"source-etag"', $requests[0]->getHeaderLine('x-ms-source-if-none-match'));
+        self::assertSame('22222222-2222-4222-8222-222222222222', $requests[0]->getHeaderLine('x-ms-source-lease-id'));
     }
 
     #[Test]

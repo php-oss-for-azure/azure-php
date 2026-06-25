@@ -50,6 +50,8 @@ final class BlockBlobClient
 
     public function stageBlockAsync(string $base64BlockId, StreamInterface|string $content, ?StageBlockOptions $options = null): PromiseInterface
     {
+        $options ??= new StageBlockOptions;
+
         $stream = Utils::streamFor($content);
 
         $md5 = Utils::hash($stream, 'md5', true);
@@ -63,6 +65,7 @@ final class BlockBlobClient
                 RequestOptions::HEADERS => [
                     'Content-MD5' => HashHelper::serializeMd5($md5),
                     'Content-Length' => $stream->getSize(),
+                    ...($options->conditions?->toHeaders() ?? []),
                 ],
                 'body' => $content,
             ]);
@@ -71,7 +74,7 @@ final class BlockBlobClient
     /**
      * @param  string[]  $base64BlockIds
      */
-    public function commitBlockList(array $base64BlockIds, CommitBlockListOptions $options = new CommitBlockListOptions): void
+    public function commitBlockList(array $base64BlockIds, ?CommitBlockListOptions $options = null): void
     {
         $this->commitBlockListAsync($base64BlockIds, $options)->wait();
     }
@@ -79,8 +82,10 @@ final class BlockBlobClient
     /**
      * @param  string[]  $base64BlockIds
      */
-    public function commitBlockListAsync(array $base64BlockIds, CommitBlockListOptions $options = new CommitBlockListOptions): PromiseInterface
+    public function commitBlockListAsync(array $base64BlockIds, ?CommitBlockListOptions $options = null): PromiseInterface
     {
+        $options ??= new CommitBlockListOptions;
+
         return $this->client
             ->putAsync($this->uri, [
                 RequestOptions::QUERY => [
