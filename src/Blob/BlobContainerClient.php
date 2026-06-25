@@ -47,11 +47,6 @@ final class BlobContainerClient
     public readonly string $containerName;
 
     /**
-     * @deprecated Use $credential instead.
-     */
-    public ?StorageSharedKeyCredential $sharedKeyCredentials = null;
-
-    /**
      * @throws InvalidBlobUriException
      */
     public function __construct(
@@ -61,11 +56,6 @@ final class BlobContainerClient
     ) {
         $this->containerName = BlobUriParserHelper::getContainerName($uri);
         $this->client = (new ClientFactory)->create($uri, $credential, new BlobStorageExceptionDeserializer, $this->options->httpClientOptions);
-
-        if ($credential instanceof StorageSharedKeyCredential) {
-            /** @phpstan-ignore-next-line  */
-            $this->sharedKeyCredentials = $credential;
-        }
     }
 
     public function getBlobClient(string $blobName): BlobClient

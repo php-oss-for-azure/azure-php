@@ -7,12 +7,7 @@
   "autoload": {
     "psr-4": {
       "AzureOss\\Storage\\": "src/"
-    },
-    "files": [
-      "src/Common/aliases.php",
-      "src/Blob/aliases.php",
-      "src/BlobFlysystem/aliases.php"
-    ]
+    }
   },
   "autoload-dev": {
     "psr-4": {

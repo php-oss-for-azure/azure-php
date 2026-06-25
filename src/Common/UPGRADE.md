@@ -10,4 +10,10 @@ Update your Composer constraint:
 composer require azure-oss/storage-common:^2.0
 ```
 
-No code changes are required for this upgrade.
+### Removed class aliases
+
+The backwards-compatible identity aliases under `AzureOss\Storage\Common\Auth` have been removed. Import the identity package classes directly instead:
+
+- `AzureOss\Storage\Common\Auth\AccessToken` -> `AzureOss\Identity\AccessToken`
+- `AzureOss\Storage\Common\Auth\TokenCredential` -> `AzureOss\Identity\TokenCredential`
+- `AzureOss\Storage\Common\Auth\ClientSecretCredential` -> `AzureOss\Identity\ClientSecretCredential`

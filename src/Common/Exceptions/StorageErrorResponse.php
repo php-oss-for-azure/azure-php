@@ -11,7 +11,7 @@ use Psr\Http\Message\ResponseInterface;
  */
 final class StorageErrorResponse
 {
-    public function __construct(
+    private function __construct(
         public readonly string $code,
         public readonly string $message,
         public readonly ?string $requestId = null,

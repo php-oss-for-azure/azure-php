@@ -9,7 +9,7 @@ use Psr\Http\Message\ResponseInterface;
 
 final class UpdateReceipt
 {
-    public function __construct(
+    private function __construct(
         public readonly string $popReceipt,
         public readonly \DateTimeInterface $timeNextVisible,
     ) {}

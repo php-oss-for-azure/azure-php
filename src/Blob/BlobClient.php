@@ -10,7 +10,6 @@ use AzureOss\Storage\Blob\Exceptions\BlobStorageExceptionDeserializer;
 use AzureOss\Storage\Blob\Exceptions\InvalidBlobUriException;
 use AzureOss\Storage\Blob\Exceptions\UnableToGenerateSasException;
 use AzureOss\Storage\Blob\Helpers\BlobUriParserHelper;
-use AzureOss\Storage\Blob\Helpers\DeprecationHelper;
 use AzureOss\Storage\Blob\Helpers\MetadataHelper;
 use AzureOss\Storage\Blob\Helpers\StreamHelper;
 use AzureOss\Storage\Blob\Models\AbortCopyFromUriOptions;
@@ -52,11 +51,6 @@ final class BlobClient
     public readonly string $blobName;
 
     /**
-     * @deprecated Use $credential instead.
-     */
-    public ?StorageSharedKeyCredential $sharedKeyCredentials = null;
-
-    /**
      * @throws InvalidBlobUriException
      */
     public function __construct(
@@ -68,11 +62,6 @@ final class BlobClient
         $this->blobName = BlobUriParserHelper::getBlobName($uri);
         $this->client = (new ClientFactory)->create($uri, $credential, new BlobStorageExceptionDeserializer, $options->httpClientOptions);
         $this->blockBlobClient = new BlockBlobClient($uri, $credential);
-
-        if ($credential instanceof StorageSharedKeyCredential) {
-            /** @phpstan-ignore-next-line  */
-            $this->sharedKeyCredentials = $credential;
-        }
     }
 
     public function downloadStreaming(): BlobDownloadStreamingResult
@@ -320,21 +309,6 @@ final class BlobClient
     private function getNextBlockId(array $blockIds): string
     {
         return base64_encode(str_pad((string) count($blockIds), 6, '0', STR_PAD_LEFT));
-    }
-
-    /**
-     * @deprecated use syncCopyFromUri or startCopyFromUri instead
-     */
-    public function copyFromUri(UriInterface $source): void
-    {
-        DeprecationHelper::methodWillBeRemoved(self::class, __FUNCTION__, '2.0');
-
-        $this->client
-            ->putAsync($this->uri, [
-                'headers' => [
-                    'x-ms-copy-source' => (string) $source,
-                ],
-            ]);
     }
 
     /**

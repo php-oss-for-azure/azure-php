@@ -12,6 +12,33 @@ composer require azure-oss/storage-blob:^2.0
 
 This release also requires `azure-oss/storage-common:^2.0`. Composer will update that dependency automatically unless your application requires `azure-oss/storage-common` directly, in which case update that constraint too.
 
+### Removed class aliases
+
+The backwards-compatible options aliases under `AzureOss\Storage\Blob\Options` have been removed. Import the model classes directly instead:
+
+- `AzureOss\Storage\Blob\Options\BlobClientOptions` -> `AzureOss\Storage\Blob\Models\BlobClientOptions`
+- `AzureOss\Storage\Blob\Options\BlobContainerClientOptions` -> `AzureOss\Storage\Blob\Models\BlobContainerClientOptions`
+- `AzureOss\Storage\Blob\Options\BlobServiceClientOptions` -> `AzureOss\Storage\Blob\Models\BlobServiceClientOptions`
+- `AzureOss\Storage\Blob\Options\BlockBlobClientOptions` -> `AzureOss\Storage\Blob\Models\BlockBlobClientOptions`
+
+### Removed deprecated client members
+
+The `sharedKeyCredentials` properties have been removed from `BlobServiceClient`, `BlobContainerClient`, and `BlobClient`. Use the `credential` property instead.
+
+`BlobClient::copyFromUri()` has been removed. Use `syncCopyFromUri()` for synchronous server-side copies, or `startCopyFromUri()` for asynchronous copies.
+
+### Result model constructors
+
+Result models returned by the SDK are now created internally through factory methods. Their constructors are private:
+
+- `Blob`
+- `BlobContainer`
+- `BlobContainerProperties`
+- `BlobDownloadStreamingResult`
+- `BlobPrefix`
+- `BlobProperties`
+- `TaggedBlob`
+
 ### Options arguments
 
 Blob methods no longer accept `null` for optional options arguments. Omit the argument to use the default options, or pass an options object explicitly.
@@ -83,5 +110,6 @@ Removed Blob service exception classes:
 - `InvalidBlockListException`
 - `NoPendingCopyOperationException`
 - `TagsTooLargeException`
+- `UnableToUploadBlobException`
 
 Client-side exceptions such as `InvalidBlobUriException`, `InvalidConnectionStringException`, `UnableToGenerateSasException`, and `DeserializationException` are unchanged.
