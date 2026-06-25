@@ -26,7 +26,11 @@ class DeprecationHelperTest extends TestCase
             E_USER_DEPRECATED,
         );
 
-        new ClassWithDeprecatedPublicConstructor;
+        try {
+            new ClassWithDeprecatedPublicConstructor;
+        } finally {
+            restore_error_handler();
+        }
     }
 
     #[WithoutErrorHandler]
@@ -42,9 +46,11 @@ class DeprecationHelperTest extends TestCase
             E_USER_DEPRECATED,
         );
 
-        ClassWithDeprecatedPublicConstructor::new();
-
-        restore_error_handler();
+        try {
+            ClassWithDeprecatedPublicConstructor::new();
+        } finally {
+            restore_error_handler();
+        }
     }
 
     #[WithoutErrorHandler]
@@ -59,9 +65,11 @@ class DeprecationHelperTest extends TestCase
             },
         );
 
-        (new ClassWithDeprecatedPublicMethod)->deprecatedMethod();
-
-        restore_error_handler();
+        try {
+            (new ClassWithDeprecatedPublicMethod)->deprecatedMethod();
+        } finally {
+            restore_error_handler();
+        }
 
     }
 }
