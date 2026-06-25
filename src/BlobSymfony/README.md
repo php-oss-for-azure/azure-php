@@ -20,6 +20,7 @@ Our other packages:
 - **[azure-oss/storage-blob-laravel](https://packagist.org/packages/azure-oss/storage-blob-laravel)** – Laravel filesystem driver
 - **[azure-oss/storage-queue](https://packagist.org/packages/azure-oss/storage-queue)** – Azure Storage Queue SDK
 - **[azure-oss/storage-queue-laravel](https://packagist.org/packages/azure-oss/storage-queue-laravel)** – Laravel Queue connector
+- **[azure-oss/storage-file-share](https://packagist.org/packages/azure-oss/storage-file-share)** – Azure Storage File Share SDK (Under construction)
 
 ## Requirements
 
