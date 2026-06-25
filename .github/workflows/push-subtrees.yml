@@ -29,6 +29,9 @@ jobs:
           - prefix: src/BlobLaravel
             repo: Azure-OSS/azure-storage-php-adapter-laravel
             secret: DEPLOY_KEY_BLOB_LARAVEL
+          - prefix: src/BlobSymfony
+            repo: Azure-OSS/azure-storage-php-adapter-symfony
+            secret: DEPLOY_KEY_BLOB_SYMFONY
     steps:
       - name: Checkout monorepo
         uses: actions/checkout@v3
