@@ -23,7 +23,7 @@ Our other packages:
 
 ## Requirements
 
-- PHP 8.1+
+- PHP 8.2+
 - `league/flysystem-bundle` 3.7 or newer (the version that introduced the pluggable `AdapterDefinitionBuilderInterface`).
 
 ## Install
