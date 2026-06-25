@@ -198,7 +198,7 @@ final class BlobClient
     /**
      * @param  string|resource|StreamInterface  $content
      */
-    public function upload($content, ?UploadBlobOptions $options = null): void
+    public function upload($content, UploadBlobOptions $options = new UploadBlobOptions): void
     {
         $this->uploadAsync($content, $options)->wait();
     }
@@ -206,12 +206,8 @@ final class BlobClient
     /**
      * @param  string|resource|StreamInterface  $content
      */
-    public function uploadAsync($content, ?UploadBlobOptions $options = null): PromiseInterface
+    public function uploadAsync($content, UploadBlobOptions $options = new UploadBlobOptions): PromiseInterface
     {
-        if ($options === null) {
-            $options = new UploadBlobOptions;
-        }
-
         $content = StreamHelper::createUploadStream($content, $options->maximumTransferSize ?? 8_000_000);
         $maximumTransferSize = $this->resolveMaximumTransferSize($content, $options);
 
@@ -344,7 +340,7 @@ final class BlobClient
     /**
      * @see https://learn.microsoft.com/en-us/rest/api/storageservices/copy-blob-from-url
      */
-    public function syncCopyFromUri(UriInterface $source, ?SyncCopyFromUriOptions $options = null): BlobCopyResult
+    public function syncCopyFromUri(UriInterface $source, SyncCopyFromUriOptions $options = new SyncCopyFromUriOptions): BlobCopyResult
     {
         /** @phpstan-ignore-next-line */
         return $this->syncCopyFromUriAsync($source, $options)->wait();
@@ -353,7 +349,7 @@ final class BlobClient
     /**
      * @see https://learn.microsoft.com/en-us/rest/api/storageservices/copy-blob-from-url
      */
-    public function syncCopyFromUriAsync(UriInterface $source, ?SyncCopyFromUriOptions $options = null): PromiseInterface
+    public function syncCopyFromUriAsync(UriInterface $source, SyncCopyFromUriOptions $options = new SyncCopyFromUriOptions): PromiseInterface
     {
         return $this->client
             ->putAsync($this->uri, [
@@ -368,7 +364,7 @@ final class BlobClient
     /**
      * @see https://learn.microsoft.com/en-us/rest/api/storageservices/copy-blob-from-url
      */
-    public function startCopyFromUri(UriInterface $source, ?StartCopyFromUriOptions $options = null): BlobCopyResult
+    public function startCopyFromUri(UriInterface $source, StartCopyFromUriOptions $options = new StartCopyFromUriOptions): BlobCopyResult
     {
         /** @phpstan-ignore-next-line */
         return $this->startCopyFromUriAsync($source, $options)->wait();
@@ -377,7 +373,7 @@ final class BlobClient
     /**
      * @see https://learn.microsoft.com/en-us/rest/api/storageservices/copy-blob-from-url
      */
-    public function startCopyFromUriAsync(UriInterface $source, ?StartCopyFromUriOptions $options = null): PromiseInterface
+    public function startCopyFromUriAsync(UriInterface $source, StartCopyFromUriOptions $options = new StartCopyFromUriOptions): PromiseInterface
     {
         return $this->client
             ->putAsync($this->uri, [
@@ -391,7 +387,7 @@ final class BlobClient
     /**
      * @see https://learn.microsoft.com/en-us/rest/api/storageservices/abort-copy-blob
      */
-    public function abortCopyFromUri(string $copyId, ?AbortCopyFromUriOptions $options = null): void
+    public function abortCopyFromUri(string $copyId, AbortCopyFromUriOptions $options = new AbortCopyFromUriOptions): void
     {
         $this->abortCopyFromUriAsync($copyId, $options)->wait();
     }
@@ -399,7 +395,7 @@ final class BlobClient
     /**
      * @see https://learn.microsoft.com/en-us/rest/api/storageservices/abort-copy-blob
      */
-    public function abortCopyFromUriAsync(string $copyId, ?AbortCopyFromUriOptions $options = null): PromiseInterface
+    public function abortCopyFromUriAsync(string $copyId, AbortCopyFromUriOptions $options = new AbortCopyFromUriOptions): PromiseInterface
     {
         return $this->client
             ->putAsync($this->uri, [

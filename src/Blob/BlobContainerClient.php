@@ -93,7 +93,7 @@ final class BlobContainerClient
     /**
      * @see https://learn.microsoft.com/en-us/rest/api/storageservices/create-container
      */
-    public function create(?CreateContainerOptions $options = null): void
+    public function create(CreateContainerOptions $options = new CreateContainerOptions): void
     {
         $this->createAsync($options)->wait();
     }
@@ -101,12 +101,8 @@ final class BlobContainerClient
     /**
      * @see https://learn.microsoft.com/en-us/rest/api/storageservices/create-container
      */
-    public function createAsync(?CreateContainerOptions $options = null): PromiseInterface
+    public function createAsync(CreateContainerOptions $options = new CreateContainerOptions): PromiseInterface
     {
-        if ($options === null) {
-            $options = new CreateContainerOptions;
-        }
-
         $headers = [];
         if ($options->publicAccessType !== PublicAccessType::NONE) {
             $headers['x-ms-blob-public-access'] = $options->publicAccessType->value;
@@ -123,7 +119,7 @@ final class BlobContainerClient
     /**
      * @see https://learn.microsoft.com/en-us/rest/api/storageservices/create-container
      */
-    public function createIfNotExists(?CreateContainerOptions $options = null): void
+    public function createIfNotExists(CreateContainerOptions $options = new CreateContainerOptions): void
     {
         $this->createIfNotExistsAsync($options)->wait();
     }
@@ -131,7 +127,7 @@ final class BlobContainerClient
     /**
      * @see https://learn.microsoft.com/en-us/rest/api/storageservices/create-container
      */
-    public function createIfNotExistsAsync(?CreateContainerOptions $options = null): PromiseInterface
+    public function createIfNotExistsAsync(CreateContainerOptions $options = new CreateContainerOptions): PromiseInterface
     {
         return $this->createAsync($options)
             ->otherwise(function (\Throwable $e) {
@@ -240,12 +236,12 @@ final class BlobContainerClient
     /**
      * @return \Generator<Blob>
      */
-    public function getBlobs(?string $prefix = null, ?GetBlobsOptions $options = null): \Generator
+    public function getBlobs(?string $prefix = null, GetBlobsOptions $options = new GetBlobsOptions): \Generator
     {
         $nextMarker = '';
 
         while (true) {
-            $response = $this->listBlobs($prefix, null, $nextMarker, $options?->pageSize);
+            $response = $this->listBlobs($prefix, null, $nextMarker, $options->pageSize);
             $nextMarker = $response->nextMarker;
 
             foreach ($response->blobs as $blob) {
@@ -261,12 +257,12 @@ final class BlobContainerClient
     /**
      * @return \Generator<Blob|BlobPrefix>
      */
-    public function getBlobsByHierarchy(?string $prefix = null, string $delimiter = '/', ?GetBlobsOptions $options = null): \Generator
+    public function getBlobsByHierarchy(?string $prefix = null, string $delimiter = '/', GetBlobsOptions $options = new GetBlobsOptions): \Generator
     {
         $nextMarker = '';
 
         while (true) {
-            $response = $this->listBlobs($prefix, $delimiter, $nextMarker, $options?->pageSize);
+            $response = $this->listBlobs($prefix, $delimiter, $nextMarker, $options->pageSize);
             $nextMarker = $response->nextMarker;
 
             foreach ($response->blobs as $blob) {
