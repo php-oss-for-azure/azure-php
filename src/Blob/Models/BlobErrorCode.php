@@ -114,6 +114,7 @@ enum BlobErrorCode: string
     case SnapshotsPresent = 'SnapshotsPresent';
     case SourceConditionNotMet = 'SourceConditionNotMet';
     case SystemInUse = 'SystemInUse';
+    case TagsTooLarge = 'TagsTooLarge';
     case TargetConditionNotMet = 'TargetConditionNotMet';
     case UnauthorizedBlobOverwrite = 'UnauthorizedBlobOverwrite';
     case UnsupportedHeader = 'UnsupportedHeader';

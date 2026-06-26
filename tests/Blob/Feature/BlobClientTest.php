@@ -6,6 +6,7 @@ namespace AzureOss\Storage\Tests\Blob\Feature;
 
 use AzureOss\Storage\Blob\BlobClient;
 use AzureOss\Storage\Blob\Exceptions\BlobStorageException;
+use AzureOss\Storage\Blob\Models\BlobErrorCode;
 use AzureOss\Storage\Blob\Models\BlobHttpHeaders;
 use AzureOss\Storage\Blob\Models\BlobRequestConditions;
 use AzureOss\Storage\Blob\Models\CopyStatus;
@@ -77,27 +78,30 @@ final class BlobClientTest extends TestCase
 
         $blob->upload('updated');
 
-        $this->expectException(BlobStorageException::class);
-
-        $blob->downloadStreaming(new DownloadBlobOptions(
-            conditions: new BlobRequestConditions(ifMatch: $staleETag),
-        ));
+        self::assertBlobStorageException(
+            BlobErrorCode::ConditionNotMet,
+            fn () => $blob->downloadStreaming(new DownloadBlobOptions(
+                conditions: new BlobRequestConditions(ifMatch: $staleETag),
+            )),
+        );
     }
 
     #[Test]
     public function download_streams_throws_if_container_doesnt_exist(): void
     {
-        $this->expectException(BlobStorageException::class);
-
-        $this->service()->getContainerClient('noop')->getBlobClient('noop')->downloadStreaming();
+        self::assertBlobStorageException(
+            BlobErrorCode::ContainerNotFound,
+            fn () => $this->service()->getContainerClient('noop')->getBlobClient('noop')->downloadStreaming(),
+        );
     }
 
     #[Test]
     public function download_stream_throws_if_blob_doesnt_exist(): void
     {
-        $this->expectException(BlobStorageException::class);
-
-        $this->tempContainer()->getBlobClient('noop')->downloadStreaming();
+        self::assertBlobStorageException(
+            BlobErrorCode::BlobNotFound,
+            fn () => $this->tempContainer()->getBlobClient('noop')->downloadStreaming(),
+        );
     }
 
     #[Test]
@@ -118,17 +122,19 @@ final class BlobClientTest extends TestCase
     #[Test]
     public function get_properties_throws_if_container_doesnt_exist(): void
     {
-        $this->expectException(BlobStorageException::class);
-
-        $this->service()->getContainerClient('noop')->getBlobClient('noop')->getProperties();
+        self::assertBlobStorageException(
+            BlobErrorCode::ContainerNotFound,
+            fn () => $this->service()->getContainerClient('noop')->getBlobClient('noop')->getProperties(),
+        );
     }
 
     #[Test]
     public function get_properties_throws_if_blob_doesnt_exist(): void
     {
-        $this->expectException(BlobStorageException::class);
-
-        $this->tempContainer()->getBlobClient('noop')->getProperties();
+        self::assertBlobStorageException(
+            BlobErrorCode::BlobNotFound,
+            fn () => $this->tempContainer()->getBlobClient('noop')->getProperties(),
+        );
     }
 
     #[Test]
@@ -149,17 +155,19 @@ final class BlobClientTest extends TestCase
     #[Test]
     public function delete_throws_if_container_doesnt_exist(): void
     {
-        $this->expectException(BlobStorageException::class);
-
-        $this->service()->getContainerClient('noop')->getBlobClient('noop')->delete();
+        self::assertBlobStorageException(
+            BlobErrorCode::ContainerNotFound,
+            fn () => $this->service()->getContainerClient('noop')->getBlobClient('noop')->delete(),
+        );
     }
 
     #[Test]
     public function delete_throws_if_blob_doesnt_exist(): void
     {
-        $this->expectException(BlobStorageException::class);
-
-        $this->tempContainer()->getBlobClient('noop')->delete();
+        self::assertBlobStorageException(
+            BlobErrorCode::BlobNotFound,
+            fn () => $this->tempContainer()->getBlobClient('noop')->delete(),
+        );
     }
 
     #[Test]
@@ -180,9 +188,10 @@ final class BlobClientTest extends TestCase
     #[Test]
     public function delete_if_exists_throws_if_container_doesnt_exist(): void
     {
-        $this->expectException(BlobStorageException::class);
-
-        $this->service()->getContainerClient('noop')->getBlobClient('noop')->deleteIfExists();
+        self::assertBlobStorageException(
+            BlobErrorCode::ContainerNotFound,
+            fn () => $this->service()->getContainerClient('noop')->getBlobClient('noop')->deleteIfExists(),
+        );
     }
 
     #[Test]
@@ -209,9 +218,10 @@ final class BlobClientTest extends TestCase
     #[Test]
     public function exists_works_throws_if_container_doesnt_exist(): void
     {
-        $this->expectException(BlobStorageException::class);
-
-        $this->service()->getContainerClient('noop')->getBlobClient('noop')->exists();
+        self::assertBlobStorageException(
+            BlobErrorCode::ContainerNotFound,
+            fn () => $this->service()->getContainerClient('noop')->getBlobClient('noop')->exists(),
+        );
     }
 
     #[Test]
@@ -273,7 +283,8 @@ final class BlobClientTest extends TestCase
             ));
 
             self::fail('Expected stale ETag upload to fail.');
-        } catch (BlobStorageException) {
+        } catch (BlobStorageException $e) {
+            self::assertSame(BlobErrorCode::ConditionNotMet, $e->errorCode);
             self::assertSame('updated', $blob->downloadStreaming()->content->getContents());
         }
     }
@@ -293,7 +304,8 @@ final class BlobClientTest extends TestCase
                 $blob->upload('should-not-write');
 
                 self::fail('Expected upload without lease ID to fail.');
-            } catch (BlobStorageException) {
+            } catch (BlobStorageException $e) {
+                self::assertSame(BlobErrorCode::LeaseIdMissing, $e->errorCode);
                 self::assertSame('original', $blob->downloadStreaming()->content->getContents());
             }
 
@@ -324,11 +336,12 @@ final class BlobClientTest extends TestCase
 
             self::assertSame('content', $result->content->getContents());
 
-            $this->expectException(BlobStorageException::class);
-
-            $blob->downloadStreaming(new DownloadBlobOptions(
-                conditions: new BlobRequestConditions(leaseId: '11111111-1111-4111-8111-111111111111'),
-            ));
+            self::assertBlobStorageException(
+                BlobErrorCode::LeaseIdMismatchWithBlobOperation,
+                fn () => $blob->downloadStreaming(new DownloadBlobOptions(
+                    conditions: new BlobRequestConditions(leaseId: '11111111-1111-4111-8111-111111111111'),
+                )),
+            );
         } finally {
             $leaseClient->release();
         }
@@ -467,9 +480,10 @@ final class BlobClientTest extends TestCase
     #[Test]
     public function upload_throws_if_container_doesnt_exist(): void
     {
-        $this->expectException(BlobStorageException::class);
-
-        $this->service()->getContainerClient('noop')->getBlobClient('noop')->upload('test');
+        self::assertBlobStorageException(
+            BlobErrorCode::ContainerNotFound,
+            fn () => $this->service()->getContainerClient('noop')->getBlobClient('noop')->upload('test'),
+        );
     }
 
     #[Test]
@@ -555,10 +569,11 @@ final class BlobClientTest extends TestCase
         $sourceContainer = $this->service(public: true)->getContainerClient('nonexistent-'.uniqid());
         $sourceBlob = $sourceContainer->getBlobClient('to_copy');
 
-        $this->expectException(BlobStorageException::class);
-
         $targetContainer = $this->tempContainer();
-        $targetContainer->getBlobClient('test')->syncCopyFromUri($sourceBlob->uri);
+        self::assertBlobStorageException(
+            BlobErrorCode::CannotVerifyCopySource,
+            fn () => $targetContainer->getBlobClient('test')->syncCopyFromUri($sourceBlob->uri),
+        );
     }
 
     #[Test]
@@ -567,10 +582,11 @@ final class BlobClientTest extends TestCase
         $sourceContainer = $this->tempContainer(public: true);
         $sourceBlob = $sourceContainer->getBlobClient('to_copy');
 
-        $this->expectException(BlobStorageException::class);
-
         $targetContainer = $this->tempContainer();
-        $targetContainer->getBlobClient('test')->syncCopyFromUri($sourceBlob->uri);
+        self::assertBlobStorageException(
+            BlobErrorCode::CannotVerifyCopySource,
+            fn () => $targetContainer->getBlobClient('test')->syncCopyFromUri($sourceBlob->uri),
+        );
     }
 
     #[Test]
@@ -616,10 +632,11 @@ final class BlobClientTest extends TestCase
         $sourceContainer = $this->tempContainer();
         $sourceBlobClient = $sourceContainer->getBlobClient('to_copy');
 
-        $this->expectException(BlobStorageException::class);
-
         $targetContainer = $this->tempContainer();
-        $targetContainer->getBlobClient('test')->startCopyFromUri($sourceBlobClient->uri);
+        self::assertBlobStorageException(
+            BlobErrorCode::CannotVerifyCopySource,
+            fn () => $targetContainer->getBlobClient('test')->startCopyFromUri($sourceBlobClient->uri),
+        );
     }
 
     #[Test]
@@ -642,9 +659,10 @@ final class BlobClientTest extends TestCase
         $targetBlob = $targetContainer->getBlobClient('copied');
         $result = $targetBlob->syncCopyFromUri($sourceBlobClient->uri);
 
-        $this->expectException(BlobStorageException::class);
-
-        $targetBlob->abortCopyFromUri($result->copyId);
+        self::assertBlobStorageException(
+            BlobErrorCode::NoPendingCopyOperation,
+            fn () => $targetBlob->abortCopyFromUri($result->copyId),
+        );
     }
 
     #[Test]
@@ -779,43 +797,48 @@ final class BlobClientTest extends TestCase
     #[Test]
     public function set_tags_throws_when_container_doesnt_exist(): void
     {
-        $this->expectException(BlobStorageException::class);
-
-        $this->service()->getContainerClient('noop')->getBlobClient('noop')->setTags(['foo' => 'bar']);
+        self::assertBlobStorageException(
+            BlobErrorCode::ContainerNotFound,
+            fn () => $this->service()->getContainerClient('noop')->getBlobClient('noop')->setTags(['foo' => 'bar']),
+        );
     }
 
     #[Test]
     public function set_tags_throws_if_blob_doesnt_exist(): void
     {
-        $this->expectException(BlobStorageException::class);
-
         $container = $this->tempContainer();
-        $container->getBlobClient('test')->setTags(['foo' => 'bar']);
+
+        self::assertBlobStorageException(
+            BlobErrorCode::BlobNotFound,
+            fn () => $container->getBlobClient('test')->setTags(['foo' => 'bar']),
+        );
     }
 
     #[Test]
     public function set_tags_throws_when_tag_key_is_too_large(): void
     {
-        $this->expectException(BlobStorageException::class);
-
         $container = $this->tempContainer();
-        $container->getBlobClient('test')->setTags([str_pad('', 1000, 'a') => 'noop']);
+
+        self::assertBlobStorageException(
+            BlobErrorCode::TagsTooLarge,
+            fn () => $container->getBlobClient('test')->setTags([str_pad('', 1000, 'a') => 'noop']),
+        );
     }
 
     #[Test]
     public function set_tags_throws_when_tag_value_is_too_large(): void
     {
-        $this->expectException(BlobStorageException::class);
-
         $container = $this->tempContainer();
-        $container->getBlobClient('test')->setTags(['noop' => str_pad('', 1000, 'a')]);
+
+        self::assertBlobStorageException(
+            BlobErrorCode::TagsTooLarge,
+            fn () => $container->getBlobClient('test')->setTags(['noop' => str_pad('', 1000, 'a')]),
+        );
     }
 
     #[Test]
     public function set_tags_throws_when_too_many_tags_are_provided(): void
     {
-        $this->expectException(BlobStorageException::class);
-
         $tags = [];
 
         for ($i = 0; $i < 1000; $i++) {
@@ -823,7 +846,11 @@ final class BlobClientTest extends TestCase
         }
 
         $container = $this->tempContainer();
-        $container->getBlobClient('test')->setTags($tags);
+
+        self::assertBlobStorageException(
+            BlobErrorCode::TagsTooLarge,
+            fn () => $container->getBlobClient('test')->setTags($tags),
+        );
     }
 
     #[Test]
@@ -843,18 +870,21 @@ final class BlobClientTest extends TestCase
     #[Test]
     public function get_tags_throws_when_container_doesnt_exist(): void
     {
-        $this->expectException(BlobStorageException::class);
-
-        $this->service()->getContainerClient('noop')->getBlobClient('noop')->getTags();
+        self::assertBlobStorageException(
+            BlobErrorCode::ContainerNotFound,
+            fn () => $this->service()->getContainerClient('noop')->getBlobClient('noop')->getTags(),
+        );
     }
 
     #[Test]
     public function get_tags_throws_if_blob_doesnt_exist(): void
     {
-        $this->expectException(BlobStorageException::class);
-
         $container = $this->tempContainer();
-        $container->getBlobClient('test')->getTags();
+
+        self::assertBlobStorageException(
+            BlobErrorCode::BlobNotFound,
+            fn () => $container->getBlobClient('test')->getTags(),
+        );
     }
 
     #[Test]
@@ -878,18 +908,21 @@ final class BlobClientTest extends TestCase
     #[Test]
     public function set_metadata_throws_when_container_doesnt_exist(): void
     {
-        $this->expectException(BlobStorageException::class);
-
-        $this->service()->getContainerClient('noop')->getBlobClient('noop')->setMetadata(['foo' => 'bar']);
+        self::assertBlobStorageException(
+            BlobErrorCode::ContainerNotFound,
+            fn () => $this->service()->getContainerClient('noop')->getBlobClient('noop')->setMetadata(['foo' => 'bar']),
+        );
     }
 
     #[Test]
     public function set_metadata_throws_if_blob_doesnt_exist(): void
     {
-        $this->expectException(BlobStorageException::class);
-
         $container = $this->tempContainer();
-        $container->getBlobClient('noop')->setMetadata(['foo' => 'bar']);
+
+        self::assertBlobStorageException(
+            BlobErrorCode::BlobNotFound,
+            fn () => $container->getBlobClient('noop')->setMetadata(['foo' => 'bar']),
+        );
     }
 
     #[Test]
@@ -986,21 +1019,35 @@ final class BlobClientTest extends TestCase
     #[Test]
     public function set_http_headers_throws_if_blob_doesnt_exist(): void
     {
-        $this->expectException(BlobStorageException::class);
-
         $container = $this->tempContainer();
-        $container->getBlobClient('test')->setHttpHeaders(new BlobHttpHeaders(
-            contentType: 'text/plain',
-        ));
+
+        self::assertBlobStorageException(
+            BlobErrorCode::BlobNotFound,
+            fn () => $container->getBlobClient('test')->setHttpHeaders(new BlobHttpHeaders(
+                contentType: 'text/plain',
+            )),
+        );
     }
 
     #[Test]
     public function set_http_headers_throws_if_container_doesnt_exist(): void
     {
-        $this->expectException(BlobStorageException::class);
-
-        $this->service()->getContainerClient('noop')->getBlobClient('noop')->setHttpHeaders(
-            new BlobHttpHeaders(contentType: 'text/plain'),
+        self::assertBlobStorageException(
+            BlobErrorCode::ContainerNotFound,
+            fn () => $this->service()->getContainerClient('noop')->getBlobClient('noop')->setHttpHeaders(
+                new BlobHttpHeaders(contentType: 'text/plain'),
+            ),
         );
+    }
+
+    private static function assertBlobStorageException(BlobErrorCode $errorCode, callable $callback): void
+    {
+        try {
+            $callback();
+
+            self::fail(sprintf('Expected %s with error code %s.', BlobStorageException::class, $errorCode->value));
+        } catch (BlobStorageException $e) {
+            self::assertSame($errorCode, $e->errorCode);
+        }
     }
 }

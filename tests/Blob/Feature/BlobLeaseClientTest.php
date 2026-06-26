@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace AzureOss\Storage\Tests\Blob\Feature;
 
 use AzureOss\Storage\Blob\Exceptions\BlobStorageException;
+use AzureOss\Storage\Blob\Models\BlobErrorCode;
 use AzureOss\Storage\Tests\CreatesTempContainers;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -72,7 +73,8 @@ final class BlobLeaseClientTest extends TestCase
             $container->delete();
 
             self::fail('Expected deleting a leased container without lease ID to fail.');
-        } catch (BlobStorageException) {
+        } catch (BlobStorageException $e) {
+            self::assertSame(BlobErrorCode::LeaseIdMissing, $e->errorCode);
             self::assertTrue($container->exists());
         }
 
