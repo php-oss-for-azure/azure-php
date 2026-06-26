@@ -149,7 +149,7 @@ final class BlobContainerClient
             RequestOptions::QUERY => [
                 'restype' => 'container',
             ],
-            RequestOptions::HEADERS => $options->conditions?->toHeaders() ?? [],
+            RequestOptions::HEADERS => $options->conditions?->toHeaders(ifMatch: false, ifNoneMatch: false) ?? [],
         ]);
     }
 
@@ -207,7 +207,12 @@ final class BlobContainerClient
                 RequestOptions::QUERY => [
                     'restype' => 'container',
                 ],
-                RequestOptions::HEADERS => $options->conditions?->toLeaseIdHeaders() ?? [],
+                RequestOptions::HEADERS => $options->conditions?->toHeaders(
+                    ifMatch: false,
+                    ifModifiedSince: false,
+                    ifNoneMatch: false,
+                    ifUnmodifiedSince: false,
+                ) ?? [],
             ])
             ->then(BlobContainerProperties::fromResponseHeaders(...));
     }
@@ -232,7 +237,11 @@ final class BlobContainerClient
             ],
             RequestOptions::HEADERS => [
                 ...MetadataHelper::metadataToHeaders($metadata),
-                ...($options->conditions?->toHeaders() ?? []),
+                ...($options->conditions?->toHeaders(
+                    ifMatch: false,
+                    ifNoneMatch: false,
+                    ifUnmodifiedSince: false,
+                ) ?? []),
             ],
         ]);
     }

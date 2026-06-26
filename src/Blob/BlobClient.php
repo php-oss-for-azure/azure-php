@@ -366,7 +366,7 @@ final class BlobClient
                     'x-ms-copy-source' => (string) $source,
                     'x-ms-requires-sync' => 'true',
                     ...($options->destinationConditions?->toHeaders() ?? []),
-                    ...($options->sourceConditions?->toSourceHeaders() ?? []),
+                    ...($options->sourceConditions?->toHeaders(prefix: 'x-ms-source-') ?? []),
                 ],
             ])
             ->then(BlobCopyResult::fromResponse(...));
@@ -391,7 +391,7 @@ final class BlobClient
                 RequestOptions::HEADERS => [
                     'x-ms-copy-source' => (string) $source,
                     ...($options->destinationConditions?->toHeaders() ?? []),
-                    ...($options->sourceConditions?->toSourceHeaders() ?? []),
+                    ...($options->sourceConditions?->toHeaders(prefix: 'x-ms-source-') ?? []),
                 ],
             ])
             ->then(BlobCopyResult::fromResponse(...));
@@ -418,6 +418,12 @@ final class BlobClient
                 ],
                 'headers' => [
                     'x-ms-copy-action' => 'abort',
+                    ...($options->conditions?->toHeaders(
+                        ifMatch: false,
+                        ifModifiedSince: false,
+                        ifNoneMatch: false,
+                        ifUnmodifiedSince: false,
+                    ) ?? []),
                 ],
             ]);
     }

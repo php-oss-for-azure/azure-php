@@ -48,7 +48,7 @@ final class BlobRequestConditionsTest extends TestCase
             'x-ms-source-if-none-match' => '*',
             'x-ms-source-if-unmodified-since' => 'Thu, 02 Jan 2025 12:34:56 GMT',
             'x-ms-source-lease-id' => '11111111-1111-4111-8111-111111111111',
-        ], $conditions->toSourceHeaders());
+        ], $conditions->toHeaders(prefix: 'x-ms-source-'));
     }
 
     #[Test]
@@ -64,6 +64,28 @@ final class BlobRequestConditionsTest extends TestCase
 
         self::assertSame([
             'x-ms-lease-id' => '11111111-1111-4111-8111-111111111111',
-        ], $conditions->toLeaseIdHeaders());
+        ], $conditions->toHeaders(
+            ifMatch: false,
+            ifModifiedSince: false,
+            ifNoneMatch: false,
+            ifUnmodifiedSince: false,
+        ));
+    }
+
+    #[Test]
+    public function converts_conditions_to_supported_header_subset(): void
+    {
+        $conditions = new BlobRequestConditions(
+            ifMatch: new ETag('"match"'),
+            ifModifiedSince: new \DateTimeImmutable('2025-01-01 12:34:56 UTC'),
+            ifNoneMatch: ETag::all(),
+            ifUnmodifiedSince: new \DateTimeImmutable('2025-01-02 12:34:56 UTC'),
+            leaseId: '11111111-1111-4111-8111-111111111111',
+        );
+
+        self::assertSame([
+            'If-Modified-Since' => 'Wed, 01 Jan 2025 12:34:56 GMT',
+            'If-Unmodified-Since' => 'Thu, 02 Jan 2025 12:34:56 GMT',
+        ], $conditions->toHeaders(ifMatch: false, ifNoneMatch: false, leaseId: false));
     }
 }
