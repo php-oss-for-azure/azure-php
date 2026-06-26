@@ -8,7 +8,7 @@ use AzureOss\Storage\Queue\Exceptions\DeserializationException;
 
 final class QueueMessage
 {
-    public function __construct(
+    private function __construct(
         public readonly string $messageId,
         public readonly string $popReceipt,
         public readonly string $messageText,

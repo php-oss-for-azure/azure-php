@@ -13,7 +13,7 @@ final class QueueProperties
     /**
      * @param  array<string>  $metadata
      */
-    public function __construct(
+    private function __construct(
         public readonly ?\DateTimeInterface $lastModified,
         public readonly string $etag,
         public readonly int $approximateMessagesCount,

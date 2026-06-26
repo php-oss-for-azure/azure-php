@@ -7,8 +7,7 @@ namespace AzureOss\Storage\Tests\Blob\Feature;
 use AzureOss\Storage\Blob\BlobClient;
 use AzureOss\Storage\Blob\BlobContainerClient;
 use AzureOss\Storage\Blob\BlobServiceClient;
-use AzureOss\Storage\Blob\Exceptions\ContainerAlreadyExistsException;
-use AzureOss\Storage\Blob\Exceptions\ContainerNotFoundException;
+use AzureOss\Storage\Blob\Exceptions\BlobStorageException;
 use AzureOss\Storage\Blob\Exceptions\UnableToGenerateSasException;
 use AzureOss\Storage\Blob\Models\Blob;
 use AzureOss\Storage\Blob\Models\BlobPrefix;
@@ -76,7 +75,7 @@ final class BlobContainerClientTest extends TestCase
     #[Test]
     public function create_throws_when_container_already_exists(): void
     {
-        $this->expectException(ContainerAlreadyExistsException::class);
+        $this->expectException(BlobStorageException::class);
 
         $container = $this->tempContainer();
         $container->create();
@@ -162,7 +161,7 @@ final class BlobContainerClientTest extends TestCase
     #[Test]
     public function delete_throws_when_container_doesnt_exists(): void
     {
-        $this->expectException(ContainerNotFoundException::class);
+        $this->expectException(BlobStorageException::class);
 
         $this->service()->getContainerClient('noop')->delete();
     }
@@ -249,7 +248,7 @@ final class BlobContainerClientTest extends TestCase
     #[Test]
     public function get_blobs_throws_if_container_doesnt_exist(): void
     {
-        $this->expectException(ContainerNotFoundException::class);
+        $this->expectException(BlobStorageException::class);
 
         iterator_to_array($this->service()->getContainerClient('noop')->getBlobs());
     }
@@ -329,7 +328,7 @@ final class BlobContainerClientTest extends TestCase
     #[Test]
     public function get_blobs_by_hierarchy_throws_if_container_doesnt_exist(): void
     {
-        $this->expectException(ContainerNotFoundException::class);
+        $this->expectException(BlobStorageException::class);
 
         iterator_to_array($this->service()->getContainerClient('noop')->getBlobsByHierarchy());
     }
@@ -404,7 +403,7 @@ final class BlobContainerClientTest extends TestCase
     #[Test]
     public function get_properties_throws_when_container_doesnt_exist(): void
     {
-        $this->expectException(ContainerNotFoundException::class);
+        $this->expectException(BlobStorageException::class);
 
         $this->service()->getContainerClient('noop')->getProperties();
     }
@@ -427,7 +426,7 @@ final class BlobContainerClientTest extends TestCase
     #[Test]
     public function set_metadata_throws_when_container_doesnt_exist(): void
     {
-        $this->expectException(ContainerNotFoundException::class);
+        $this->expectException(BlobStorageException::class);
 
         $this->service()->getContainerClient('noop')->setMetadata([]);
     }
@@ -452,7 +451,7 @@ final class BlobContainerClientTest extends TestCase
     #[Test]
     public function find_blobs_by_tag_works_throws_when_container_doesnt_exist(): void
     {
-        $this->expectException(ContainerNotFoundException::class);
+        $this->expectException(BlobStorageException::class);
 
         iterator_to_array($this->service()->getContainerClient('noop')->findBlobsByTag("foo = 'bar'"));
     }

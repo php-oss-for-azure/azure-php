@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - "main"
+  workflow_dispatch: ~
 
 name: Coding Standards
 
@@ -17,7 +18,7 @@ jobs:
     strategy:
       matrix:
         php-version:
-          - 8.1 # Always run on the lowest supported version due to compatibility
+          - 8.2 # Always run on the lowest supported version due to compatibility
 
     steps:
       - name: Checkout code

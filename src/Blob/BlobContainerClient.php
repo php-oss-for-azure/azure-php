@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace AzureOss\Storage\Blob;
 
 use AzureOss\Identity\TokenCredential;
+use AzureOss\Storage\Blob\Exceptions\BlobStorageException;
 use AzureOss\Storage\Blob\Exceptions\BlobStorageExceptionDeserializer;
-use AzureOss\Storage\Blob\Exceptions\ContainerAlreadyExistsException;
-use AzureOss\Storage\Blob\Exceptions\ContainerNotFoundException;
 use AzureOss\Storage\Blob\Exceptions\InvalidBlobUriException;
 use AzureOss\Storage\Blob\Exceptions\UnableToGenerateSasException;
 use AzureOss\Storage\Blob\Helpers\BlobUriParserHelper;
@@ -16,6 +15,7 @@ use AzureOss\Storage\Blob\Models\Blob;
 use AzureOss\Storage\Blob\Models\BlobClientOptions;
 use AzureOss\Storage\Blob\Models\BlobContainerClientOptions;
 use AzureOss\Storage\Blob\Models\BlobContainerProperties;
+use AzureOss\Storage\Blob\Models\BlobErrorCode;
 use AzureOss\Storage\Blob\Models\BlobPrefix;
 use AzureOss\Storage\Blob\Models\CreateContainerOptions;
 use AzureOss\Storage\Blob\Models\DeleteContainerOptions;
@@ -50,11 +50,6 @@ final class BlobContainerClient
     public readonly string $containerName;
 
     /**
-     * @deprecated Use $credential instead.
-     */
-    public ?StorageSharedKeyCredential $sharedKeyCredentials = null;
-
-    /**
      * @throws InvalidBlobUriException
      */
     public function __construct(
@@ -64,11 +59,6 @@ final class BlobContainerClient
     ) {
         $this->containerName = BlobUriParserHelper::getContainerName($uri);
         $this->client = (new ClientFactory)->create($uri, $credential, new BlobStorageExceptionDeserializer, $this->options->httpClientOptions);
-
-        if ($credential instanceof StorageSharedKeyCredential) {
-            /** @phpstan-ignore-next-line  */
-            $this->sharedKeyCredentials = $credential;
-        }
     }
 
     public function getBlobClient(string $blobName): BlobClient
@@ -101,7 +91,7 @@ final class BlobContainerClient
     /**
      * @see https://learn.microsoft.com/en-us/rest/api/storageservices/create-container
      */
-    public function create(?CreateContainerOptions $options = null): void
+    public function create(CreateContainerOptions $options = new CreateContainerOptions): void
     {
         $this->createAsync($options)->wait();
     }
@@ -109,12 +99,8 @@ final class BlobContainerClient
     /**
      * @see https://learn.microsoft.com/en-us/rest/api/storageservices/create-container
      */
-    public function createAsync(?CreateContainerOptions $options = null): PromiseInterface
+    public function createAsync(CreateContainerOptions $options = new CreateContainerOptions): PromiseInterface
     {
-        if ($options === null) {
-            $options = new CreateContainerOptions;
-        }
-
         $headers = [];
         if ($options->publicAccessType !== PublicAccessType::NONE) {
             $headers['x-ms-blob-public-access'] = $options->publicAccessType->value;
@@ -131,7 +117,7 @@ final class BlobContainerClient
     /**
      * @see https://learn.microsoft.com/en-us/rest/api/storageservices/create-container
      */
-    public function createIfNotExists(?CreateContainerOptions $options = null): void
+    public function createIfNotExists(CreateContainerOptions $options = new CreateContainerOptions): void
     {
         $this->createIfNotExistsAsync($options)->wait();
     }
@@ -139,11 +125,11 @@ final class BlobContainerClient
     /**
      * @see https://learn.microsoft.com/en-us/rest/api/storageservices/create-container
      */
-    public function createIfNotExistsAsync(?CreateContainerOptions $options = null): PromiseInterface
+    public function createIfNotExistsAsync(CreateContainerOptions $options = new CreateContainerOptions): PromiseInterface
     {
         return $this->createAsync($options)
             ->otherwise(function (\Throwable $e) {
-                if ($e instanceof ContainerAlreadyExistsException) {
+                if ($e instanceof BlobStorageException && $e->errorCode === BlobErrorCode::ContainerAlreadyExists) {
                     return;
                 }
 
@@ -175,7 +161,7 @@ final class BlobContainerClient
     {
         return $this->deleteAsync($options)
             ->otherwise(function (\Throwable $e) {
-                if ($e instanceof ContainerNotFoundException) {
+                if ($e instanceof BlobStorageException && $e->errorCode === BlobErrorCode::ContainerNotFound) {
                     return;
                 }
 
@@ -199,7 +185,7 @@ final class BlobContainerClient
             ])
             ->then(fn () => true)
             ->otherwise(function (\Throwable $e) {
-                if ($e instanceof ContainerNotFoundException) {
+                if ($e instanceof BlobStorageException && $e->errorCode === BlobErrorCode::ContainerNotFound) {
                     return false;
                 }
 
@@ -252,12 +238,12 @@ final class BlobContainerClient
     /**
      * @return \Generator<Blob>
      */
-    public function getBlobs(?string $prefix = null, ?GetBlobsOptions $options = null): \Generator
+    public function getBlobs(?string $prefix = null, GetBlobsOptions $options = new GetBlobsOptions): \Generator
     {
         $nextMarker = '';
 
         while (true) {
-            $response = $this->listBlobs($prefix, null, $nextMarker, $options?->pageSize);
+            $response = $this->listBlobs($prefix, null, $nextMarker, $options->pageSize);
             $nextMarker = $response->nextMarker;
 
             foreach ($response->blobs as $blob) {
@@ -273,12 +259,12 @@ final class BlobContainerClient
     /**
      * @return \Generator<Blob|BlobPrefix>
      */
-    public function getBlobsByHierarchy(?string $prefix = null, string $delimiter = '/', ?GetBlobsOptions $options = null): \Generator
+    public function getBlobsByHierarchy(?string $prefix = null, string $delimiter = '/', GetBlobsOptions $options = new GetBlobsOptions): \Generator
     {
         $nextMarker = '';
 
         while (true) {
-            $response = $this->listBlobs($prefix, $delimiter, $nextMarker, $options?->pageSize);
+            $response = $this->listBlobs($prefix, $delimiter, $nextMarker, $options->pageSize);
             $nextMarker = $response->nextMarker;
 
             foreach ($response->blobs as $blob) {

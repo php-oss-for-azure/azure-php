@@ -30,11 +30,6 @@ final class BlobServiceClient
 {
     private readonly Client $client;
 
-    /**
-     * @deprecated Use $credential instead.
-     */
-    public ?StorageSharedKeyCredential $sharedKeyCredentials = null;
-
     public function __construct(
         public UriInterface $uri,
         public readonly StorageSharedKeyCredential|TokenCredential|null $credential = null,
@@ -43,11 +38,6 @@ final class BlobServiceClient
         // must always include the forward slash (/) to separate the host name from the path and query portions of the URI.
         $this->uri = $uri->withPath(rtrim($uri->getPath(), '/').'/');
         $this->client = (new ClientFactory)->create($this->uri, $credential, new BlobStorageExceptionDeserializer, $this->options->httpClientOptions);
-
-        if ($credential instanceof StorageSharedKeyCredential) {
-            /** @phpstan-ignore-next-line  */
-            $this->sharedKeyCredentials = $credential;
-        }
     }
 
     public static function fromConnectionString(string $connectionString, BlobServiceClientOptions $options = new BlobServiceClientOptions): self

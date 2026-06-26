@@ -1,0 +1,22 @@
+{
+  "name": "azure-oss/storage-blob-symfony",
+  "description": "Symfony bundle bridge for the Azure-OSS Flysystem adapter (league/flysystem-bundle 3.7+).",
+  "type": "symfony-bundle",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Alex Rothberg",
+      "email": "agrothberg@gmail.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "AzureOss\\Storage\\BlobSymfony\\": ""
+    }
+  },
+  "require": {
+    "php": "^8.2",
+    "azure-oss/storage-blob-flysystem": "^2.0",
+    "league/flysystem-bundle": "^3.7"
+  }
+}

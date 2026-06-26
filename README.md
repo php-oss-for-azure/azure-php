@@ -19,7 +19,7 @@ This monorepo contains the following packages:
 
 ### [azure-oss/storage](https://packagist.org/packages/azure-oss/storage) ![Version](https://img.shields.io/packagist/v/azure-oss/storage) ![Total Downloads](https://img.shields.io/packagist/dt/azure-oss/storage)
 
-Meta package that installs both the Blob and Queue SDKs. Use this when you want a single Composer dependency for the core Azure Storage clients.
+Meta package that installs the Blob, Queue and File Share SDKs. Use this when you want a single Composer dependency for the core Azure Storage clients.
 
 ### [azure-oss/storage-blob](https://packagist.org/packages/azure-oss/storage-blob) ![Version](https://img.shields.io/packagist/v/azure-oss/storage-blob) ![Total Downloads](https://img.shields.io/packagist/dt/azure-oss/storage-blob)
 
@@ -33,9 +33,13 @@ Azure Storage Queue PHP SDK. Provides functionality for interacting with Azure S
 
 Flysystem adapter for Azure Storage PHP. Provides integration with the [Flysystem](https://flysystem.thephpleague.com/) filesystem abstraction library.
 
-### [azure-oss/storage-blob-flysystem-symfony](https://packagist.org/packages/azure-oss/storage-blob-flysystem-symfony) ![Version](https://img.shields.io/packagist/v/azure-oss/storage-blob-flysystem-symfony) ![Total Downloads](https://img.shields.io/packagist/dt/azure-oss/storage-blob-flysystem-symfony)
+### [azure-oss/storage-blob-symfony](https://packagist.org/packages/azure-oss/storage-blob-symfony) ![Version](https://img.shields.io/packagist/v/azure-oss/storage-blob-symfony) ![Total Downloads](https://img.shields.io/packagist/dt/azure-oss/storage-blob-symfony)
 
-Symfony bridge for the Flysystem adapter. Registers an `azure_oss` adapter shortcut with [`league/flysystem-bundle`](https://packagist.org/packages/league/flysystem-bundle) 3.7+.
+Symfony bridge for the Flysystem adapter.
+
+### [azure-oss/storage-file-share](https://packagist.org/packages/azure-oss/storage-file-share) ![Version](https://img.shields.io/packagist/v/azure-oss/storage-file-share) ![Total Downloads](https://img.shields.io/packagist/dt/azure-oss/storage-file-share)
+
+Azure Storage File Share PHP SDK. **(Under construction)**
 
 ### [azure-oss/storage-blob-laravel](https://packagist.org/packages/azure-oss/storage-blob-laravel) ![Version](https://img.shields.io/packagist/v/azure-oss/storage-blob-laravel) ![Total Downloads](https://img.shields.io/packagist/dt/azure-oss/storage-blob-laravel)
 

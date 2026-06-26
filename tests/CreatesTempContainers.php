@@ -38,11 +38,9 @@ trait CreatesTempContainers
         $serviceClient = $this->service($versions, $public, $softDeletes);
         $containerClient = $serviceClient->getContainerClient($prefix.bin2hex(random_bytes(12)));
 
-        $options = $public
-            ? new CreateContainerOptions(PublicAccessType::BLOB)
-            : null;
-
-        $containerClient->create($options);
+        $containerClient->create(new CreateContainerOptions(
+            $public ? PublicAccessType::BLOB : PublicAccessType::NONE,
+        ));
 
         $this->tempContainers[] = $containerClient;
 

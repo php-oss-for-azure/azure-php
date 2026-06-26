@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace AzureOss\Storage\Blob\Models;
 
 use AzureOss\Storage\Blob\Helpers\DateHelper;
-use AzureOss\Storage\Blob\Helpers\DeprecationHelper;
 use AzureOss\Storage\Blob\Helpers\HashHelper;
 use AzureOss\Storage\Blob\Helpers\MetadataHelper;
 use AzureOss\Storage\Common\Models\ETag;
@@ -16,11 +15,9 @@ use Psr\Http\Message\UriInterface;
 final class BlobProperties
 {
     /**
-     * @deprecated will be private in version 2
-     *
      * @param  array<string>  $metadata
      */
-    public function __construct(
+    private function __construct(
         public readonly \DateTimeInterface $lastModified,
         public readonly int $contentLength,
         public readonly string $contentType,
@@ -36,14 +33,11 @@ final class BlobProperties
         public readonly string $contentLanguage = '',
         public readonly string $contentEncoding = '',
         public readonly ?ETag $eTag = null,
-    ) {
-        DeprecationHelper::constructorWillBePrivate(self::class, '2.0');
-    }
+    ) {}
 
     public static function fromResponseHeaders(ResponseInterface $response): self
     {
-        /** @phpstan-ignore-next-line */
-        return new BlobProperties(
+        return new self(
             DateHelper::deserializeDateRfc1123Date($response->getHeaderLine('Last-Modified')),
             $response->getHeaderLine('x-encoded-content-length') !== '' ? (int) $response->getHeaderLine('x-encoded-content-length') : (int) $response->getHeaderLine('Content-Length'),
             $response->getHeaderLine('Content-Type'),
@@ -66,7 +60,6 @@ final class BlobProperties
     {
         $eTag = (string) $xml->Etag !== '' ? (string) $xml->Etag : (string) $xml->ETag;
 
-        /** @phpstan-ignore-next-line */
         return new self(
             DateHelper::deserializeDateRfc1123Date((string) $xml->{'Last-Modified'}),
             (int) $xml->{'Content-Length'},
@@ -84,20 +77,5 @@ final class BlobProperties
             (string) $xml->{'Content-Encoding'},
             $eTag !== '' ? new ETag($eTag) : null,
         );
-    }
-
-    /**
-     * @deprecated will be removed in version 2
-     */
-    public static function deserializeContentMD5(string $contentMD5): ?string
-    {
-        DeprecationHelper::methodWillBeRemoved(self::class, __FUNCTION__, '2.0');
-
-        $result = base64_decode($contentMD5, true);
-        if ($result === false) {
-            return null;
-        }
-
-        return bin2hex($result);
     }
 }

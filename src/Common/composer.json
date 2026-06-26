@@ -1,14 +1,12 @@
 {
   "name": "azure-oss/storage-common",
+  "description": "Shared primitives for Azure Storage PHP SDK packages",
   "type": "library",
   "license": "MIT",
   "autoload": {
     "psr-4": {
       "AzureOss\\Storage\\Common\\": ""
-    },
-    "files": [
-      "aliases.php"
-    ]
+    }
   },
   "authors": [
     {
@@ -17,7 +15,7 @@
     }
   ],
   "require": {
-    "php": "^8.1",
+    "php": "^8.2",
     "azure-oss/identity": "^1.0",
     "guzzlehttp/guzzle": "^7.8",
     "caseyamcl/guzzle_retry_middleware": "^2.10"

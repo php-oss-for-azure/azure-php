@@ -13,7 +13,7 @@ use Psr\Http\Message\ResponseInterface;
  */
 final class SendMessageResponseBody
 {
-    public function __construct(
+    private function __construct(
         public readonly SendReceipt $receipt,
     ) {}
 

@@ -7,10 +7,10 @@ namespace AzureOss\Storage\Queue;
 use AzureOss\Identity\TokenCredential;
 use AzureOss\Storage\Common\Auth\StorageSharedKeyCredential;
 use AzureOss\Storage\Common\Middleware\ClientFactory;
-use AzureOss\Storage\Queue\Exceptions\QueueAlreadyExistsException;
-use AzureOss\Storage\Queue\Exceptions\QueueNotFoundException;
+use AzureOss\Storage\Queue\Exceptions\QueueStorageException;
 use AzureOss\Storage\Queue\Exceptions\QueueStorageExceptionDeserializer;
 use AzureOss\Storage\Queue\Models\QueueClientOptions;
+use AzureOss\Storage\Queue\Models\QueueErrorCode;
 use AzureOss\Storage\Queue\Models\QueueMessage;
 use AzureOss\Storage\Queue\Models\QueueProperties;
 use AzureOss\Storage\Queue\Models\SendReceipt;
@@ -60,7 +60,7 @@ final class QueueClient
     {
         return $this->createAsync()
             ->otherwise(function (\Throwable $e) {
-                if ($e instanceof QueueAlreadyExistsException) {
+                if ($e instanceof QueueStorageException && $e->errorCode === QueueErrorCode::QueueAlreadyExists) {
                     return;
                 }
 
@@ -87,7 +87,7 @@ final class QueueClient
     {
         return $this->deleteAsync()
             ->otherwise(function (\Throwable $e) {
-                if ($e instanceof QueueNotFoundException) {
+                if ($e instanceof QueueStorageException && $e->errorCode === QueueErrorCode::QueueNotFound) {
                     return;
                 }
 
@@ -111,7 +111,7 @@ final class QueueClient
             ])
             ->then(fn () => true)
             ->otherwise(function (\Throwable $e) {
-                if ($e instanceof QueueNotFoundException) {
+                if ($e instanceof QueueStorageException && $e->errorCode === QueueErrorCode::QueueNotFound) {
                     return false;
                 }
 

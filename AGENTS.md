@@ -7,13 +7,20 @@ This repository is a PHP monorepo for the Azure Storage SDKs maintained under th
 At the root you will find:
 
 - `composer.json`: the monorepo-level package, shared dependencies, and root autoload setup.
-- `meta/`: the publishable meta package for `azure-oss/storage`, which currently requires the Blob and Queue SDKs.
 - `src/`: all package source code.
 - `tests/`: the test suites, grouped by package.
 - `infra/`: Azure Bicep templates for provisioning storage resources used during development or validation.
 - `.github/`: repository automation and helper scripts such as subtree/package sync tooling.
 
 ## Source Layout
+
+### `src/BlobSymfony`
+
+Symfony bridge for the Azure Blob Storage Flysystem adapter.
+
+### `src/File/Share`
+
+Azure Storage File Share SDK (Under construction).
 
 ### `src/Common`
 
@@ -32,7 +39,7 @@ This is the lowest-level package in the repo. Blob and queue code depend on it.
 The umbrella Composer package published as `azure-oss/storage`.
 
 - Contains package metadata only; there is no runtime source code here.
-- Requires the Blob and Queue SDK packages so consumers can install a single package.
+- Requires the Blob, Queue and File Share SDK packages so consumers can install a single package.
 - This is the package that should be subtree-split to the main `storage` repository.
 
 Use this package for umbrella package metadata, dependency aggregation, and split-repo docs.
@@ -103,21 +110,23 @@ Changes here should stay Laravel-specific rather than duplicating queue SDK beha
 
 The packages are layered roughly like this:
 
-`Common` -> `Blob` / `Queue` -> `BlobFlysystem` -> `BlobLaravel`
+`Common` -> `Blob` / `Queue` / `File/Share` -> `BlobFlysystem` -> `BlobLaravel` / `BlobSymfony`
 
 `Common` -> `Blob` -> `QueueLaravel`
 
-`meta` -> `Blob` / `Queue`
+`meta` -> `Blob` / `Queue` / `File/Share`
 
 In practice:
 
 - Put reusable HTTP/auth/SAS utilities in `src/Common`.
 - Put Azure Blob API behavior in `src/Blob`.
 - Put Azure Queue API behavior in `src/Queue`.
+- Put Azure File Share API behavior in `src/File/Share`.
 - Put umbrella Composer-package wiring in `meta/`.
 - Put Flysystem-specific behavior in `src/BlobFlysystem`.
 - Put Laravel-specific filesystem behavior in `src/BlobLaravel`.
 - Put Laravel-specific queue behavior in `src/QueueLaravel`.
+- Put Symfony-specific behavior in `src/BlobSymfony`.
 
 ## Tests
 
@@ -126,9 +135,11 @@ Tests mirror the source packages under `tests/`.
 - `tests/Common`
 - `tests/Blob`
 - `tests/Queue`
+- `tests/File/Share`
 - `tests/BlobFlysystem`
 - `tests/BlobLaravel`
 - `tests/QueueLaravel`
+- `tests/BlobSymfony`
 
 There are also shared test helpers at the top level of `tests/`, such as temporary resource creation traits and retry assertions.
 

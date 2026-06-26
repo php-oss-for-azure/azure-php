@@ -15,7 +15,7 @@ final class ReceiveMessagesResponseBody
     /**
      * @param  QueueMessage[]  $messages
      */
-    public function __construct(
+    private function __construct(
         public readonly array $messages,
     ) {}
 

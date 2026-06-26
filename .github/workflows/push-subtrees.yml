@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch: ~
 
 jobs:
   push-subtrees:
@@ -12,32 +13,38 @@ jobs:
       matrix:
         include:
           - prefix: src/Common
-            repo: Azure-OSS/azure-storage-common
+            repo: Azure-OSS/azure-storage-common-php
             secret: DEPLOY_KEY_COMMON
-          - prefix: meta
-            repo: Azure-OSS/azure-storage-php
-            secret: DEPLOY_KEY_META
           - prefix: src/Blob
             repo: Azure-OSS/azure-storage-blob-php
             secret: DEPLOY_KEY_BLOB
+          - prefix: src/BlobFlysystem
+            repo: Azure-OSS/azure-storage-blob-flysystem-php
+            secret: DEPLOY_KEY_BLOB_FLYSYSTEM
+          - prefix: src/BlobLaravel
+            repo: Azure-OSS/azure-storage-blob-laravel-php
+            secret: DEPLOY_KEY_BLOB_LARAVEL
+          - prefix: src/BlobSymfony
+            repo: Azure-OSS/azure-storage-blob-symfony-php
+            secret: DEPLOY_KEY_BLOB_SYMFONY
           - prefix: src/Queue
             repo: Azure-OSS/azure-storage-queue-php
             secret: DEPLOY_KEY_QUEUE
-          - prefix: src/BlobFlysystem
-            repo: Azure-OSS/azure-storage-php-adapter-flysystem
-            secret: DEPLOY_KEY_BLOB_FLYSYSTEM
-          - prefix: src/BlobLaravel
-            repo: Azure-OSS/azure-storage-php-adapter-laravel
-            secret: DEPLOY_KEY_BLOB_LARAVEL
+          - prefix: src/QueueLaravel
+            repo: Azure-OSS/azure-storage-queue-laravel-php
+            secret: DEPLOY_KEY_QUEUE_LARAVEL
+          - prefix: src/File/Share
+            repo: Azure-OSS/azure-storage-file-share-php
+            secret: DEPLOY_KEY_FILE_SHARE
     steps:
       - name: Checkout monorepo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Cache splitsh-lite
         id: cache-splitsh
-        uses: actions/cache@v3
+        uses: actions/cache@v5
         with:
           path: /usr/local/bin/splitsh-lite
           key: splitsh-lite-v1.0.1

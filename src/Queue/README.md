@@ -13,7 +13,7 @@ We picked up where they left off.
 
 Our other packages:
 
-- **[azure-oss/storage](https://packagist.org/packages/azure-oss/storage)** – Meta package with Blob + Queue SDKs  
+- **[azure-oss/storage](https://packagist.org/packages/azure-oss/storage)** – Meta package with Blob, Queue + File Share SDKs  
   ![Downloads](https://img.shields.io/packagist/dt/azure-oss/storage)
 
 - **[azure-oss/storage-blob](https://packagist.org/packages/azure-oss/storage-blob)** – Azure Blob Storage SDK  
@@ -27,6 +27,12 @@ Our other packages:
 
 - **[azure-oss/storage-blob-laravel](https://packagist.org/packages/azure-oss/storage-blob-laravel)** – Laravel filesystem driver  
   ![Downloads](https://img.shields.io/packagist/dt/azure-oss/storage-blob-laravel)
+
+- **[azure-oss/storage-blob-symfony](https://packagist.org/packages/azure-oss/storage-blob-symfony)** – Symfony bridge for the Flysystem adapter  
+  ![Downloads](https://img.shields.io/packagist/dt/azure-oss/storage-blob-symfony)
+
+- **[azure-oss/storage-file-share](https://packagist.org/packages/azure-oss/storage-file-share)** – Azure Storage File Share SDK (Under construction)  
+  ![Downloads](https://img.shields.io/packagist/dt/azure-oss/storage-file-share)
 
 ## Features
 

@@ -7,12 +7,7 @@
   "autoload": {
     "psr-4": {
       "AzureOss\\Storage\\": "src/"
-    },
-    "files": [
-      "src/Common/aliases.php",
-      "src/Blob/aliases.php",
-      "src/BlobFlysystem/aliases.php"
-    ]
+    }
   },
   "autoload-dev": {
     "psr-4": {
@@ -30,7 +25,7 @@
     }
   ],
   "require": {
-    "php": "^8.1",
+    "php": "^8.2",
     "ext-curl": "*",
     "ext-json": "*",
     "ext-simplexml": "*",
@@ -40,17 +35,17 @@
   },
   "require-dev": {
     "ext-zlib": "*",
-    "guzzlehttp/test-server": "^0.1.0 || ^0.4.0",
-    "laravel/pint": "1.20.0",
+    "guzzlehttp/test-server": "^0.6",
+    "laravel/pint": "1.29.3",
     "league/flysystem-adapter-test-utilities": "^3.28",
     "league/flysystem-bundle": "^3.7",
-    "orchestra/testbench": "^8.27",
+    "orchestra/testbench": "^10.11",
     "phpstan/extension-installer": "^1.4",
-    "phpstan/phpstan": "^2.1",
+    "phpstan/phpstan": "^2.2",
     "phpstan/phpstan-deprecation-rules": "^2.0",
     "phpstan/phpstan-phpunit": "^2.0",
     "phpstan/phpstan-strict-rules": "^2.0",
-    "phpunit/phpunit": "^10.5"
+    "phpunit/phpunit": "^11.5"
   },
   "config": {
     "sort-packages": true,

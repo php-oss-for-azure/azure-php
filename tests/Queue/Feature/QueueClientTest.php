@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace AzureOss\Storage\Tests\Queue\Feature;
 
-use AzureOss\Storage\Queue\Exceptions\MessageNotFoundException;
-use AzureOss\Storage\Queue\Exceptions\QueueNotFoundException;
+use AzureOss\Storage\Queue\Exceptions\QueueStorageException;
 use AzureOss\Storage\Tests\CreatesTempQueues;
 use AzureOss\Storage\Tests\RetryableAssertions;
 use PHPUnit\Framework\Attributes\Test;
@@ -76,7 +75,7 @@ final class QueueClientTest extends TestCase
     #[Test]
     public function delete_throws_when_queue_doesnt_exists(): void
     {
-        $this->expectException(QueueNotFoundException::class);
+        $this->expectException(QueueStorageException::class);
 
         $this->service()->getQueueClient('test-'.bin2hex(random_bytes(12)))->delete();
     }
@@ -253,7 +252,7 @@ final class QueueClientTest extends TestCase
 
         $queue->deleteMessage($message->messageId, $message->popReceipt);
 
-        $this->expectException(MessageNotFoundException::class);
+        $this->expectException(QueueStorageException::class);
         $queue->deleteMessage($message->messageId, $message->popReceipt);
     }
 }

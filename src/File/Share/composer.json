@@ -1,0 +1,25 @@
+{
+  "name": "azure-oss/storage-file-share",
+  "description": "Azure Storage File Share PHP SDK",
+  "keywords": ["azure", "storage", "file", "share", "php", "sdk"],
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "AzureOss\\Storage\\File\\Share\\": ""
+    }
+  },
+  "authors": [
+    {
+      "name": "Brecht Vermeersch",
+      "email": "brechtvermeersch@outlook.be"
+    }
+  ],
+  "require": {
+    "php": "^8.2",
+    "azure-oss/storage-common": "^2.0"
+  },
+  "config": {
+    "sort-packages": true
+  }
+}
