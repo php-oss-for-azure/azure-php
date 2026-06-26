@@ -151,11 +151,6 @@ final class AzureStorageBlobAdapter extends FilesystemAdapter
     }
 
     /**
-     * Build the shared HTTP options for both the Blob API calls and the Entra ID
-     * token request. Leaving these unset keeps the previous behaviour (no explicit
-     * timeouts); setting them prevents a slow connection — in particular a stalled
-     * token request to the identity provider — from hanging the caller indefinitely.
-     *
      * @param  array{timeout?: int, connect_timeout?: int, verify_ssl?: bool}  $config
      */
     private static function createHttpClientOptions(array $config): HttpClientOptions

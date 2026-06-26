@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace AzureOss\Storage\Common\Middleware;
 
-final class HttpClientOptions
+final readonly class HttpClientOptions
 {
     public function __construct(
-        public readonly ?int $timeout = null,
-        public readonly ?int $connectTimeout = null,
-        public readonly ?bool $verifySsl = null,
+        public ?int  $timeout = null,
+        public ?int  $connectTimeout = null,
+        public ?bool $verifySsl = null,
     ) {}
 
     /**
