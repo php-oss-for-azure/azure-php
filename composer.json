@@ -39,7 +39,7 @@
     "laravel/pint": "1.29.3",
     "league/flysystem-adapter-test-utilities": "^3.28",
     "league/flysystem-bundle": "^3.7",
-    "orchestra/testbench": "^10.11",
+    "orchestra/testbench": "^10.11 || ^11.0",
     "php-http/discovery": "^1.20",
     "phpstan/extension-installer": "^1.4",
     "phpstan/phpstan": "^2.2",
