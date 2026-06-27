@@ -124,6 +124,34 @@ Token-based credentials require either `endpoint` **or** `account_name` (and opt
 - Token-based credentials do not support SAS URL generation in this driver, so `temporaryUrl()` is not available (`providesTemporaryUrls()` returns `false`).
 - To override the cloud authority (e.g. sovereign clouds), set `authority_host` (defaults to `login.microsoftonline.com`).
 
+### Custom domains and Azure Front Door
+
+To generate public URLs through a custom domain or Azure Front Door, set `url` in the disk config:
+
+```php
+'azure' => [
+    'driver' => 'azure-storage-blob',
+    'connection_string' => env('AZURE_STORAGE_CONNECTION_STRING'),
+    'container' => env('AZURE_STORAGE_CONTAINER'),
+    'url' => env('AZURE_STORAGE_URL'), // e.g. https://assets.example.com
+],
+```
+
+`url` is used only by `Storage::url()`. The configured disk `prefix` or `root` and the requested path are appended to it. The URL must therefore point to a Front Door route that maps to the configured container, or include the container path itself.
+
+Set `temporary_url` to serve signed download and upload URLs through a different origin:
+
+```php
+'azure' => [
+    'driver' => 'azure-storage-blob',
+    'connection_string' => env('AZURE_STORAGE_CONNECTION_STRING'),
+    'container' => env('AZURE_STORAGE_CONTAINER'),
+    'temporary_url' => env('AZURE_STORAGE_TEMPORARY_URL'), // e.g. https://secure-assets.example.com
+],
+```
+
+`temporary_url` replaces only the scheme, host, and port of generated SAS URLs. The complete Blob path and SAS query string are preserved. When using Azure Front Door, configure the route to forward the SAS query string to Blob Storage and include the relevant query parameters in the cache key so one caller cannot receive content authorized for another.
+
 ## Next Step
 
 Continue to [Quickstart](./quickstart) for common file operations with `Storage::disk('azure')`.
