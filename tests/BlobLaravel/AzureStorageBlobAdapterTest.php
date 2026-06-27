@@ -758,6 +758,62 @@ class AzureStorageBlobAdapterTest extends TestCase
     }
 
     #[Test]
+    public function it_resolves_the_disk_when_http_client_options_are_configured(): void
+    {
+        config([
+            'filesystems.disks.azure' => [
+                'driver' => 'azure-storage-blob',
+                'connection_string' => 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;',
+                'container' => 'noop',
+                'timeout' => 30,
+                'connect_timeout' => 10,
+                'verify_ssl' => false,
+            ],
+        ]);
+
+        self::assertInstanceOf(
+            AzureStorageBlobAdapter::class,
+            Storage::disk('azure'),
+        );
+    }
+
+    #[Test]
+    public function it_rejects_a_non_integer_timeout(): void
+    {
+        config([
+            'filesystems.disks.azure' => [
+                'driver' => 'azure-storage-blob',
+                'connection_string' => 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;',
+                'container' => 'noop',
+                'timeout' => '30',
+            ],
+        ]);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('[timeout]');
+
+        Storage::disk('azure');
+    }
+
+    #[Test]
+    public function it_rejects_a_non_boolean_verify_ssl(): void
+    {
+        config([
+            'filesystems.disks.azure' => [
+                'driver' => 'azure-storage-blob',
+                'connection_string' => 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;',
+                'container' => 'noop',
+                'verify_ssl' => 'yes',
+            ],
+        ]);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('[verify_ssl]');
+
+        Storage::disk('azure');
+    }
+
+    #[Test]
     public function it_throws_when_credential_has_wrong_type(): void
     {
         config([
