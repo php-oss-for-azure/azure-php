@@ -18,7 +18,7 @@ use Psr\Http\Message\UriInterface;
  */
 final class ClientFactory
 {
-    public function create(?UriInterface $uri = null, StorageSharedKeyCredential|TokenCredential|null $credential = null, ?RequestExceptionDeserializer $exceptionDeserializer = null, HttpClientOptions $options = new HttpClientOptions): Client
+    public function create(?UriInterface $uri = null, StorageSharedKeyCredential|TokenCredential|null $credential = null, ?RequestExceptionDeserializer $exceptionDeserializer = null, HttpClientOptions $options = new HttpClientOptions, ?ApiVersion $apiVersion = null): Client
     {
         $handlerStack = HandlerStack::create();
 
@@ -28,7 +28,7 @@ final class ClientFactory
 
         $handlerStack->push(new AddXMsClientRequestIdMiddleware);
         $handlerStack->push(new AddXMsDateHeaderMiddleware);
-        $handlerStack->push(new AddXMsVersionMiddleware(ApiVersion::LATEST));
+        $handlerStack->push(new AddXMsVersionMiddleware($apiVersion));
 
         if ($uri !== null) {
             $handlerStack->push(new AddDefaultQueryParamsMiddleware($uri->getQuery()));

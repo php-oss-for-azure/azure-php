@@ -38,7 +38,7 @@ final class QueueClient
         // must always include the forward slash (/) to separate the host name from the path and query portions of the URI.
         $this->uri = $uri->withPath(rtrim($uri->getPath(), '/'));
         $this->queueName = basename($this->uri->getPath());
-        $this->client = (new ClientFactory)->create($this->uri, $credential, new QueueStorageExceptionDeserializer, $this->options->httpClientOptions);
+        $this->client = (new ClientFactory)->create($this->uri, $credential, new QueueStorageExceptionDeserializer, $this->options->httpClientOptions, $this->options->apiVersion);
     }
 
     public function create(): void

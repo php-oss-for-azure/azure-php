@@ -7,7 +7,9 @@ namespace AzureOss\Storage\Tests\Blob\Feature;
 use AzureOss\Storage\Blob\BlobClient;
 use AzureOss\Storage\Blob\BlobServiceClient;
 use AzureOss\Storage\Blob\Models\BlobHttpHeaders;
+use AzureOss\Storage\Blob\Models\BlobServiceClientOptions;
 use AzureOss\Storage\Blob\Models\UploadBlobOptions;
+use AzureOss\Storage\Common\ApiVersion;
 use AzureOss\Storage\Tests\CreatesTempFiles;
 use GuzzleHttp\Psr7\Response;
 use GuzzleHttp\Psr7\StreamDecoratorTrait;
@@ -37,6 +39,70 @@ class MockBlobClientTest extends TestCase
     protected function tearDown(): void
     {
         Server::stop();
+    }
+
+    #[Test]
+    public function requests_use_latest_azurite_api_version_for_development_uri_by_default(): void
+    {
+        Server::enqueue([
+            new Response(200, [
+                'Content-Length' => '0',
+                'Last-Modified' => 'Wed, 21 Oct 2015 07:28:00 GMT',
+            ]),
+        ]);
+
+        $this->blob->downloadStreaming();
+
+        $requests = Server::received();
+
+        self::assertCount(1, $requests);
+        self::assertSame(ApiVersion::latestAzurite()->value, $requests[0]->getHeaderLine('x-ms-version'));
+    }
+
+    #[Test]
+    public function requests_use_latest_azurite_api_version_for_development_uri_when_configured_version_is_null(): void
+    {
+        Server::enqueue([
+            new Response(200, [
+                'Content-Length' => '0',
+                'Last-Modified' => 'Wed, 21 Oct 2015 07:28:00 GMT',
+            ]),
+        ]);
+
+        /** @phpstan-ignore-next-line */
+        $uri = new Uri(Server::$url.'/devstoreaccount1');
+        $service = new BlobServiceClient($uri, options: new BlobServiceClientOptions(
+            apiVersion: null,
+        ));
+        $service->getContainerClient('test')->getBlobClient('test')->downloadStreaming();
+
+        $requests = Server::received();
+
+        self::assertCount(1, $requests);
+        self::assertSame(ApiVersion::latestAzurite()->value, $requests[0]->getHeaderLine('x-ms-version'));
+    }
+
+    #[Test]
+    public function requests_use_configured_api_version(): void
+    {
+        Server::enqueue([
+            new Response(200, [
+                'Content-Length' => '0',
+                'Last-Modified' => 'Wed, 21 Oct 2015 07:28:00 GMT',
+            ]),
+        ]);
+
+        /** @phpstan-ignore-next-line */
+        $uri = new Uri(Server::$url.'/devstoreaccount1');
+        $service = new BlobServiceClient($uri, options: new BlobServiceClientOptions(
+            apiVersion: ApiVersion::V2024_08_04,
+        ));
+        $service->getContainerClient('test')->getBlobClient('test')->downloadStreaming();
+
+        $requests = Server::received();
+
+        self::assertCount(1, $requests);
+        self::assertSame(ApiVersion::V2024_08_04->value, $requests[0]->getHeaderLine('x-ms-version'));
     }
 
     #[Test]

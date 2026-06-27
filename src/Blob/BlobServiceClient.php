@@ -8,7 +8,6 @@ use AzureOss\Identity\TokenCredential;
 use AzureOss\Storage\Blob\Exceptions\BlobStorageExceptionDeserializer;
 use AzureOss\Storage\Blob\Exceptions\InvalidConnectionStringException;
 use AzureOss\Storage\Blob\Exceptions\UnableToGenerateSasException;
-use AzureOss\Storage\Blob\Helpers\BlobUriParserHelper;
 use AzureOss\Storage\Blob\Models\BlobContainer;
 use AzureOss\Storage\Blob\Models\BlobContainerClientOptions;
 use AzureOss\Storage\Blob\Models\BlobServiceClientOptions;
@@ -17,6 +16,7 @@ use AzureOss\Storage\Blob\Responses\FindBlobsByTagBody;
 use AzureOss\Storage\Blob\Responses\ListContainersResponseBody;
 use AzureOss\Storage\Common\Auth\StorageSharedKeyCredential;
 use AzureOss\Storage\Common\Helpers\ConnectionStringHelper;
+use AzureOss\Storage\Common\Helpers\StorageUriParserHelper;
 use AzureOss\Storage\Common\Middleware\ClientFactory;
 use AzureOss\Storage\Common\Sas\AccountSasBuilder;
 use AzureOss\Storage\Common\Sas\AccountSasServices;
@@ -37,7 +37,7 @@ final class BlobServiceClient
     ) {
         // must always include the forward slash (/) to separate the host name from the path and query portions of the URI.
         $this->uri = $uri->withPath(rtrim($uri->getPath(), '/').'/');
-        $this->client = (new ClientFactory)->create($this->uri, $credential, new BlobStorageExceptionDeserializer, $this->options->httpClientOptions);
+        $this->client = (new ClientFactory)->create($this->uri, $credential, new BlobStorageExceptionDeserializer, $this->options->httpClientOptions, $this->options->apiVersion);
     }
 
     public static function fromConnectionString(string $connectionString, BlobServiceClientOptions $options = new BlobServiceClientOptions): self
@@ -66,7 +66,7 @@ final class BlobServiceClient
         return new BlobContainerClient(
             $this->uri->withPath($this->uri->getPath().$containerName),
             $this->credential,
-            new BlobContainerClientOptions($this->options->httpClientOptions),
+            new BlobContainerClientOptions($this->options->httpClientOptions, $this->options->apiVersion),
         );
     }
 
@@ -138,7 +138,7 @@ final class BlobServiceClient
             throw new UnableToGenerateSasException;
         }
 
-        if (BlobUriParserHelper::isDevelopmentUri($this->uri)) {
+        if (StorageUriParserHelper::isDevelopmentUri($this->uri)) {
             $accountSasBuilder->setProtocol(SasProtocol::HTTPS_AND_HTTP);
         }
 

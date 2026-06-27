@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace AzureOss\Storage\Blob\Helpers;
 
 use AzureOss\Storage\Blob\Exceptions\InvalidBlobUriException;
+use AzureOss\Storage\Common\Helpers\StorageUriParserHelper;
 use Psr\Http\Message\UriInterface;
 
 /**
@@ -16,7 +17,7 @@ final class BlobUriParserHelper
     {
         $segments = self::getPathSegments($uri);
 
-        if (self::isDevelopmentUri($uri)) {
+        if (StorageUriParserHelper::isDevelopmentUri($uri)) {
             array_shift($segments);
         }
 
@@ -31,7 +32,7 @@ final class BlobUriParserHelper
     {
         $segments = self::getPathSegments($uri);
 
-        if (self::isDevelopmentUri($uri)) {
+        if (StorageUriParserHelper::isDevelopmentUri($uri)) {
             array_shift($segments);
         }
 
@@ -42,13 +43,6 @@ final class BlobUriParserHelper
         }
 
         return implode('/', $segments);
-    }
-
-    public static function isDevelopmentUri(UriInterface $uri): bool
-    {
-        $segments = self::getPathSegments($uri);
-
-        return ($segments[0] ?? null) === 'devstoreaccount1';
     }
 
     /**

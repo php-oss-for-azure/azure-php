@@ -174,7 +174,7 @@ final class BlobSasBuilder
         $signedResource = $this->blobName !== null ? 'b' : 'c';
         $signedIp = $this->ipRange !== null ? (string) $this->ipRange : null;
         $signedProtocol = $this->protocol?->value;
-        $signedVersion = $this->version ?? ApiVersion::LATEST->value;
+        $signedVersion = $this->version ?? ApiVersion::latestGA()->value;
         $signedSnapshotTime = $this->snapshotTime !== null ? (string) $this->snapshotTime->getTimestamp() : null;
         $canonicalizedResource = $this->getCanonicalizedResource($sharedKeyCredential->accountName);
 
