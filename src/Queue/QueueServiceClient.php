@@ -49,7 +49,7 @@ final class QueueServiceClient
         return new QueueClient(
             $this->uri->withPath($this->uri->getPath().$queueName),
             $this->credential,
-            new QueueClientOptions($this->options->httpClientOptions),
+            new QueueClientOptions($this->options->httpClientOptions, $this->options->apiVersion),
         );
     }
 }

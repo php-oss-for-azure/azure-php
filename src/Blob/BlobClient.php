@@ -21,6 +21,7 @@ use AzureOss\Storage\Blob\Models\BlobHttpHeaders;
 use AzureOss\Storage\Blob\Models\BlobLeaseClientOptions;
 use AzureOss\Storage\Blob\Models\BlobProperties;
 use AzureOss\Storage\Blob\Models\BlobRequestConditions;
+use AzureOss\Storage\Blob\Models\BlockBlobClientOptions;
 use AzureOss\Storage\Blob\Models\CommitBlockListOptions;
 use AzureOss\Storage\Blob\Models\CopyStatus;
 use AzureOss\Storage\Blob\Models\DeleteBlobOptions;
@@ -40,6 +41,7 @@ use AzureOss\Storage\Blob\Sas\BlobSasBuilder;
 use AzureOss\Storage\Blob\Specialized\BlobLeaseClient;
 use AzureOss\Storage\Blob\Specialized\BlockBlobClient;
 use AzureOss\Storage\Common\Auth\StorageSharedKeyCredential;
+use AzureOss\Storage\Common\Helpers\StorageUriParserHelper;
 use AzureOss\Storage\Common\Middleware\ClientFactory;
 use AzureOss\Storage\Common\Sas\SasProtocol;
 use GuzzleHttp\Client;
@@ -72,8 +74,8 @@ final class BlobClient
     ) {
         $this->containerName = BlobUriParserHelper::getContainerName($uri);
         $this->blobName = BlobUriParserHelper::getBlobName($uri);
-        $this->client = (new ClientFactory)->create($uri, $credential, new BlobStorageExceptionDeserializer, $options->httpClientOptions);
-        $this->blockBlobClient = new BlockBlobClient($uri, $credential);
+        $this->client = (new ClientFactory)->create($uri, $credential, new BlobStorageExceptionDeserializer, $options->httpClientOptions, $options->apiVersion);
+        $this->blockBlobClient = new BlockBlobClient($uri, $credential, new BlockBlobClientOptions($options->httpClientOptions, $options->apiVersion));
     }
 
     public function downloadStreaming(DownloadBlobOptions $options = new DownloadBlobOptions): BlobDownloadStreamingResult
@@ -113,7 +115,7 @@ final class BlobClient
             $this->uri,
             $this->credential,
             $leaseId,
-            options: new BlobLeaseClientOptions($this->options->httpClientOptions),
+            options: new BlobLeaseClientOptions($this->options->httpClientOptions, $this->options->apiVersion),
         );
     }
 
@@ -521,7 +523,7 @@ final class BlobClient
             throw new UnableToGenerateSasException;
         }
 
-        if (BlobUriParserHelper::isDevelopmentUri($this->uri)) {
+        if (StorageUriParserHelper::isDevelopmentUri($this->uri)) {
             $blobSasBuilder->setProtocol(SasProtocol::HTTPS_AND_HTTP);
         }
 

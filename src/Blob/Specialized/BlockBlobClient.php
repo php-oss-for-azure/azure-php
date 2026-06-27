@@ -41,7 +41,7 @@ final class BlockBlobClient
     ) {
         $this->containerName = BlobUriParserHelper::getContainerName($uri);
         $this->blobName = BlobUriParserHelper::getBlobName($uri);
-        $this->client = (new ClientFactory)->create($uri, $credential, new BlobStorageExceptionDeserializer, $options->httpClientOptions);
+        $this->client = (new ClientFactory)->create($uri, $credential, new BlobStorageExceptionDeserializer, $options->httpClientOptions, $options->apiVersion);
     }
 
     public function stageBlock(string $base64BlockId, StreamInterface|string $content, StageBlockOptions $options = new StageBlockOptions): void

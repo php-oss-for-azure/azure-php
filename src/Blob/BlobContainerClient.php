@@ -18,6 +18,7 @@ use AzureOss\Storage\Blob\Models\BlobContainerProperties;
 use AzureOss\Storage\Blob\Models\BlobErrorCode;
 use AzureOss\Storage\Blob\Models\BlobLeaseClientOptions;
 use AzureOss\Storage\Blob\Models\BlobPrefix;
+use AzureOss\Storage\Blob\Models\BlockBlobClientOptions;
 use AzureOss\Storage\Blob\Models\CreateContainerOptions;
 use AzureOss\Storage\Blob\Models\DeleteContainerOptions;
 use AzureOss\Storage\Blob\Models\GetBlobsOptions;
@@ -32,6 +33,7 @@ use AzureOss\Storage\Blob\Sas\BlobSasBuilder;
 use AzureOss\Storage\Blob\Specialized\BlobLeaseClient;
 use AzureOss\Storage\Blob\Specialized\BlockBlobClient;
 use AzureOss\Storage\Common\Auth\StorageSharedKeyCredential;
+use AzureOss\Storage\Common\Helpers\StorageUriParserHelper;
 use AzureOss\Storage\Common\Middleware\ClientFactory;
 use AzureOss\Storage\Common\Sas\SasProtocol;
 use GuzzleHttp\Client;
@@ -61,7 +63,7 @@ final class BlobContainerClient
         private readonly BlobContainerClientOptions $options = new BlobContainerClientOptions,
     ) {
         $this->containerName = BlobUriParserHelper::getContainerName($uri);
-        $this->client = (new ClientFactory)->create($uri, $credential, new BlobStorageExceptionDeserializer, $this->options->httpClientOptions);
+        $this->client = (new ClientFactory)->create($uri, $credential, new BlobStorageExceptionDeserializer, $this->options->httpClientOptions, $this->options->apiVersion);
     }
 
     public function getBlobClient(string $blobName): BlobClient
@@ -69,7 +71,7 @@ final class BlobContainerClient
         return new BlobClient(
             $this->getBlobUri($blobName),
             $this->credential,
-            new BlobClientOptions($this->options->httpClientOptions),
+            new BlobClientOptions($this->options->httpClientOptions, $this->options->apiVersion),
         );
     }
 
@@ -78,6 +80,7 @@ final class BlobContainerClient
         return new BlockBlobClient(
             $this->getBlobUri($blobName),
             $this->credential,
+            new BlockBlobClientOptions($this->options->httpClientOptions, $this->options->apiVersion),
         );
     }
 
@@ -88,7 +91,7 @@ final class BlobContainerClient
             $this->credential,
             $leaseId,
             container: true,
-            options: new BlobLeaseClientOptions($this->options->httpClientOptions),
+            options: new BlobLeaseClientOptions($this->options->httpClientOptions, $this->options->apiVersion),
         );
     }
 
@@ -327,7 +330,7 @@ final class BlobContainerClient
             throw new UnableToGenerateSasException;
         }
 
-        if (BlobUriParserHelper::isDevelopmentUri($this->uri)) {
+        if (StorageUriParserHelper::isDevelopmentUri($this->uri)) {
             $blobSasBuilder->setProtocol(SasProtocol::HTTPS_AND_HTTP);
         }
 

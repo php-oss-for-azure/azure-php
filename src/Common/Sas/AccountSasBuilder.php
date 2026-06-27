@@ -103,7 +103,7 @@ final class AccountSasBuilder
         $signedExpiry = DateHelper::formatAs8601Zulu($this->expiresOn);
         $signedIp = $this->ipRange !== null ? (string) $this->ipRange : null;
         $signedProtocol = $this->protocol?->value;
-        $signedVersion = $this->version ?? ApiVersion::LATEST->value;
+        $signedVersion = $this->version ?? ApiVersion::latestGA()->value;
 
         $stringToSign = [
             $sharedKeyCredential->accountName,

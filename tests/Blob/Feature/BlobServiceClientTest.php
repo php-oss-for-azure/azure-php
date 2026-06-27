@@ -190,7 +190,7 @@ final class BlobServiceClientTest extends TestCase
                 ->setPermissions(new AccountSasPermissions(list: true))
                 ->setResourceTypes(new AccountSasResourceTypes(service: true))
                 ->setIpRange(new SasIpRange('0.0.0.0', '255.255.255.255'))
-                ->setVersion(ApiVersion::LATEST->value)
+                ->setVersion(ApiVersion::latestGA()->value)
                 ->setStartsOn(new \DateTimeImmutable('-5 minutes'))
                 ->setExpiresOn(new \DateTimeImmutable('+5 minutes')),
         );

@@ -10,6 +10,7 @@ use AzureOss\Storage\Blob\Models\AbortCopyFromUriOptions;
 use AzureOss\Storage\Blob\Models\AcquireBlobLeaseOptions;
 use AzureOss\Storage\Blob\Models\BlobHttpHeaders;
 use AzureOss\Storage\Blob\Models\BlobRequestConditions;
+use AzureOss\Storage\Blob\Models\BlobServiceClientOptions;
 use AzureOss\Storage\Blob\Models\DeleteContainerOptions;
 use AzureOss\Storage\Blob\Models\GetBlobTagsOptions;
 use AzureOss\Storage\Blob\Models\GetContainerPropertiesOptions;
@@ -20,6 +21,7 @@ use AzureOss\Storage\Blob\Models\StartCopyFromUriOptions;
 use AzureOss\Storage\Blob\Models\SyncCopyFromUriOptions;
 use AzureOss\Storage\Blob\Models\UploadBlobOptions;
 use AzureOss\Storage\Blob\Specialized\BlockBlobClient;
+use AzureOss\Storage\Common\ApiVersion;
 use AzureOss\Storage\Common\Models\ETag;
 use AzureOss\Storage\Tests\CreatesTempFiles;
 use GuzzleHttp\Psr7\Response;
@@ -53,6 +55,95 @@ class MockBlobClientTest extends TestCase
     }
 
     #[Test]
+    public function requests_use_latest_azurite_api_version_for_development_uri_by_default(): void
+    {
+        Server::enqueue([
+            new Response(200, [
+                'Content-Length' => '0',
+                'Last-Modified' => 'Wed, 21 Oct 2015 07:28:00 GMT',
+            ]),
+        ]);
+
+        $this->blob->downloadStreaming();
+
+        $requests = Server::received();
+
+        self::assertCount(1, $requests);
+        self::assertSame(ApiVersion::latestAzurite()->value, $requests[0]->getHeaderLine('x-ms-version'));
+    }
+
+    #[Test]
+    public function requests_use_latest_azurite_api_version_for_development_uri_when_configured_version_is_null(): void
+    {
+        Server::enqueue([
+            new Response(200, [
+                'Content-Length' => '0',
+                'Last-Modified' => 'Wed, 21 Oct 2015 07:28:00 GMT',
+            ]),
+        ]);
+
+        /** @phpstan-ignore-next-line */
+        $uri = new Uri(Server::$url.'/devstoreaccount1');
+        $service = new BlobServiceClient($uri, options: new BlobServiceClientOptions(
+            apiVersion: null,
+        ));
+        $service->getContainerClient('test')->getBlobClient('test')->downloadStreaming();
+
+        $requests = Server::received();
+
+        self::assertCount(1, $requests);
+        self::assertSame(ApiVersion::latestAzurite()->value, $requests[0]->getHeaderLine('x-ms-version'));
+    }
+
+    #[Test]
+    public function requests_use_configured_api_version(): void
+    {
+        Server::enqueue([
+            new Response(200, [
+                'Content-Length' => '0',
+                'Last-Modified' => 'Wed, 21 Oct 2015 07:28:00 GMT',
+            ]),
+        ]);
+
+        /** @phpstan-ignore-next-line */
+        $uri = new Uri(Server::$url.'/devstoreaccount1');
+        $service = new BlobServiceClient($uri, options: new BlobServiceClientOptions(
+            apiVersion: ApiVersion::V2024_08_04,
+        ));
+        $service->getContainerClient('test')->getBlobClient('test')->downloadStreaming();
+
+        $requests = Server::received();
+
+        self::assertCount(1, $requests);
+        self::assertSame(ApiVersion::V2024_08_04->value, $requests[0]->getHeaderLine('x-ms-version'));
+    }
+
+    #[Test]
+    public function lease_clients_inherit_configured_api_version(): void
+    {
+        Server::enqueue([
+            new Response(201, ['x-ms-lease-id' => '11111111-1111-4111-8111-111111111111']),
+            new Response(201, ['x-ms-lease-id' => '22222222-2222-4222-8222-222222222222']),
+        ]);
+
+        /** @phpstan-ignore-next-line */
+        $uri = new Uri(Server::$url.'/devstoreaccount1');
+        $service = new BlobServiceClient($uri, options: new BlobServiceClientOptions(
+            apiVersion: ApiVersion::V2024_08_04,
+        ));
+        $container = $service->getContainerClient('test');
+
+        $container->getBlobLeaseClient()->acquire();
+        $container->getBlobClient('test')->getBlobLeaseClient()->acquire();
+
+        $requests = Server::received();
+
+        self::assertCount(2, $requests);
+        self::assertSame(ApiVersion::V2024_08_04->value, $requests[0]->getHeaderLine('x-ms-version'));
+        self::assertSame(ApiVersion::V2024_08_04->value, $requests[1]->getHeaderLine('x-ms-version'));
+    }
+
+    #[Test]
     public function upload_single_sends_correct_amount_of_requests(): void
     {
         Server::enqueue([
@@ -61,7 +152,10 @@ class MockBlobClientTest extends TestCase
         ]);
 
         $file = $this->tempFile(1000);
-        $this->blob->upload($file, new UploadBlobOptions('text/plain', initialTransferSize: 2000));
+        $this->blob->upload($file, new UploadBlobOptions(
+            initialTransferSize: 2000,
+            httpHeaders: new BlobHttpHeaders(contentType: 'text/plain'),
+        ));
 
         $requests = Server::received();
 
@@ -79,7 +173,11 @@ class MockBlobClientTest extends TestCase
         ]);
 
         $file = $this->tempFile(50_000_000);
-        $this->blob->upload($file, new UploadBlobOptions('text/plain', initialTransferSize: 0, maximumTransferSize: 5_000_000));
+        $this->blob->upload($file, new UploadBlobOptions(
+            initialTransferSize: 0,
+            maximumTransferSize: 5_000_000,
+            httpHeaders: new BlobHttpHeaders(contentType: 'text/plain'),
+        ));
 
         $requests = Server::received();
 
@@ -134,7 +232,11 @@ class MockBlobClientTest extends TestCase
         ]);
 
         $file = $this->tempFile(50_000);
-        $this->blob->upload($file, new UploadBlobOptions('text/plain', initialTransferSize: 0, maximumTransferSize: 8_000_000));
+        $this->blob->upload($file, new UploadBlobOptions(
+            initialTransferSize: 0,
+            maximumTransferSize: 8_000_000,
+            httpHeaders: new BlobHttpHeaders(contentType: 'text/plain'),
+        ));
 
         $requests = Server::received();
 
@@ -165,7 +267,11 @@ class MockBlobClientTest extends TestCase
             }
         };
 
-        $this->blob->upload($stream, new UploadBlobOptions('text/plain', initialTransferSize: 0, maximumTransferSize: 5_000_000));
+        $this->blob->upload($stream, new UploadBlobOptions(
+            initialTransferSize: 0,
+            maximumTransferSize: 5_000_000,
+            httpHeaders: new BlobHttpHeaders(contentType: 'text/plain'),
+        ));
 
         $requests = Server::received();
 
@@ -199,7 +305,11 @@ class MockBlobClientTest extends TestCase
             }
         };
 
-        $this->blob->upload($stream, new UploadBlobOptions('text/plain', initialTransferSize: 0, maximumTransferSize: null));
+        $this->blob->upload($stream, new UploadBlobOptions(
+            initialTransferSize: 0,
+            maximumTransferSize: null,
+            httpHeaders: new BlobHttpHeaders(contentType: 'text/plain'),
+        ));
 
         $requests = Server::received();
 
@@ -218,7 +328,10 @@ class MockBlobClientTest extends TestCase
         ]);
 
         $file = $this->tempFile(1000);
-        $this->blob->upload($file, new UploadBlobOptions('text/plain', initialTransferSize: 1000));
+        $this->blob->upload($file, new UploadBlobOptions(
+            initialTransferSize: 1000,
+            httpHeaders: new BlobHttpHeaders(contentType: 'text/plain'),
+        ));
 
         $requests = Server::received();
 
@@ -242,7 +355,11 @@ class MockBlobClientTest extends TestCase
             self::fail();
         }
 
-        $this->blob->upload($stream, new UploadBlobOptions('text/plain', initialTransferSize: 0, maximumTransferSize: 5_000_000));
+        $this->blob->upload($stream, new UploadBlobOptions(
+            initialTransferSize: 0,
+            maximumTransferSize: 5_000_000,
+            httpHeaders: new BlobHttpHeaders(contentType: 'text/plain'),
+        ));
 
         $requests = Server::received();
         $lastRequestIndex = count($requests) - 1;
@@ -266,10 +383,12 @@ class MockBlobClientTest extends TestCase
         $file->rewind();
 
         $this->blob->upload($file, new UploadBlobOptions(
-            'text/plain',
             initialTransferSize: 0,
             maximumTransferSize: 8_000_000,
-            httpHeaders: new BlobHttpHeaders(contentHash: $contentHash),
+            httpHeaders: new BlobHttpHeaders(
+                contentHash: $contentHash,
+                contentType: 'text/plain',
+            ),
         ));
 
         $requests = Server::received();
@@ -371,7 +490,11 @@ class MockBlobClientTest extends TestCase
             }
         };
 
-        $this->blob->upload($stream, new UploadBlobOptions('text/plain', initialTransferSize: 0, maximumTransferSize: null));
+        $this->blob->upload($stream, new UploadBlobOptions(
+            initialTransferSize: 0,
+            maximumTransferSize: null,
+            httpHeaders: new BlobHttpHeaders(contentType: 'text/plain'),
+        ));
 
         $requests = Server::received();
 

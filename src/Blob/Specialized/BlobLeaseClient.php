@@ -43,6 +43,7 @@ final class BlobLeaseClient
             $credential,
             new BlobStorageExceptionDeserializer,
             $this->options->httpClientOptions,
+            $this->options->apiVersion,
         );
     }
 

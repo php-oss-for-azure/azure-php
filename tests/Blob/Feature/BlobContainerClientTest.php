@@ -359,7 +359,7 @@ final class BlobContainerClientTest extends TestCase
         $sas = $container->generateSasUri(
             BlobSasBuilder::new()
                 ->setPermissions(new BlobContainerSasPermissions(list: true))
-                ->setVersion(ApiVersion::LATEST->value)
+                ->setVersion(ApiVersion::latestGA()->value)
                 ->setIPRange(new SasIpRange('0.0.0.0', '255.255.255.255'))
                 ->setStartsOn(new \DateTimeImmutable('-5 minutes'))
                 ->setExpiresOn(new \DateTimeImmutable('+5 minutes')),

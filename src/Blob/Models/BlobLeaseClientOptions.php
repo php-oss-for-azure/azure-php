@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace AzureOss\Storage\Blob\Models;
 
+use AzureOss\Storage\Common\ApiVersion;
 use AzureOss\Storage\Common\Middleware\HttpClientOptions;
 
-final class BlobLeaseClientOptions
+final readonly class BlobLeaseClientOptions
 {
     public function __construct(
-        public readonly HttpClientOptions $httpClientOptions = new HttpClientOptions,
+        public HttpClientOptions $httpClientOptions = new HttpClientOptions,
+        public ?ApiVersion $apiVersion = null,
     ) {}
 }
