@@ -7,8 +7,8 @@ namespace AzureOss\Storage\Common\Middleware;
 final readonly class HttpClientOptions
 {
     public function __construct(
-        public ?int  $timeout = null,
-        public ?int  $connectTimeout = null,
+        public ?int $timeout = null,
+        public ?int $connectTimeout = null,
         public ?bool $verifySsl = null,
     ) {}
 
