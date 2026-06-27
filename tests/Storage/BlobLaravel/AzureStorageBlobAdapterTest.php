@@ -88,6 +88,61 @@ class AzureStorageBlobAdapterTest extends TestCase
     }
 
     #[Test]
+    public function url_uses_configured_url_with_the_disk_prefix(): void
+    {
+        config([
+            'filesystems.disks.azure-custom-url' => [
+                'driver' => 'azure-storage-blob',
+                'connection_string' => 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;',
+                'container' => 'test-container',
+                'prefix' => 'tenant',
+                'url' => 'https://cdn.example.com/assets/',
+            ],
+        ]);
+
+        $disk = Storage::disk('azure-custom-url');
+        self::assertInstanceOf(AzureStorageBlobAdapter::class, $disk);
+
+        $url = $disk->url('/file.txt');
+
+        self::assertSame('https://cdn.example.com/assets/tenant/file.txt', $url);
+    }
+
+    #[Test]
+    public function temporary_url_replaces_the_origin_for_downloads_and_uploads(): void
+    {
+        config([
+            'filesystems.disks.azure-custom-temporary-url' => [
+                'driver' => 'azure-storage-blob',
+                'connection_string' => 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;',
+                'container' => 'test-container',
+                'prefix' => 'tenant',
+                'temporary_url' => 'https://cdn.example.com:8443',
+            ],
+        ]);
+
+        $disk = Storage::disk('azure-custom-temporary-url');
+        self::assertInstanceOf(AzureStorageBlobAdapter::class, $disk);
+
+        $downloadUrl = $disk->temporaryUrl('file.txt', now()->addMinute());
+        $upload = $disk->temporaryUploadUrl('upload.txt', now()->addMinute());
+        self::assertArrayHasKey('url', $upload);
+        self::assertIsString($upload['url']);
+
+        self::assertSame('https', parse_url($downloadUrl, PHP_URL_SCHEME));
+        self::assertSame('cdn.example.com', parse_url($downloadUrl, PHP_URL_HOST));
+        self::assertSame(8443, parse_url($downloadUrl, PHP_URL_PORT));
+        self::assertSame('/devstoreaccount1/test-container/tenant/file.txt', parse_url($downloadUrl, PHP_URL_PATH));
+        self::assertStringContainsString('sig=', $downloadUrl);
+
+        self::assertSame('https', parse_url($upload['url'], PHP_URL_SCHEME));
+        self::assertSame('cdn.example.com', parse_url($upload['url'], PHP_URL_HOST));
+        self::assertSame(8443, parse_url($upload['url'], PHP_URL_PORT));
+        self::assertSame('/devstoreaccount1/test-container/tenant/upload.txt', parse_url($upload['url'], PHP_URL_PATH));
+        self::assertStringContainsString('sig=', $upload['url']);
+    }
+
+    #[Test]
     public function driver_works_with_connection_string(): void
     {
         $container = $this->tempContainer('laravel-');
@@ -753,6 +808,42 @@ class AzureStorageBlobAdapterTest extends TestCase
         $this->expectExceptionMessage(
             'The [is_public_container] must be a boolean',
         );
+
+        Storage::disk('azure');
+    }
+
+    #[Test]
+    public function it_throws_when_url_has_wrong_type(): void
+    {
+        config([
+            'filesystems.disks.azure' => [
+                'driver' => 'azure-storage-blob',
+                'connection_string' => 'DefaultEndpointsProtocol=https;AccountName=test;AccountKey=key;EndpointSuffix=core.windows.net',
+                'container' => 'test-container',
+                'url' => ['invalid'],
+            ],
+        ]);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('The [url] must be a string');
+
+        Storage::disk('azure');
+    }
+
+    #[Test]
+    public function it_throws_when_temporary_url_has_wrong_type(): void
+    {
+        config([
+            'filesystems.disks.azure' => [
+                'driver' => 'azure-storage-blob',
+                'connection_string' => 'DefaultEndpointsProtocol=https;AccountName=test;AccountKey=key;EndpointSuffix=core.windows.net',
+                'container' => 'test-container',
+                'temporary_url' => ['invalid'],
+            ],
+        ]);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('The [temporary_url] must be a string');
 
         Storage::disk('azure');
     }

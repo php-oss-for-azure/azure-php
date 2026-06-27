@@ -156,6 +156,12 @@ When editing a package, start by checking its matching test directory. Feature t
 - Static analysis is enforced with PHPStan via `vendor/bin/phpstan --no-progress --memory-limit=2G`, configured in `phpstan.neon` at level 10 over `src/` and `tests/`.
 - Both Pint and PHPStan are also run in CI under `.github/workflows/`.
 
+## Changelogs and Documentation
+
+- Update the relevant package README and/or pages under `docs/docs/` whenever a change affects public APIs, behavior, configuration, authentication, setup, or integration.
+- Update the affected package's `CHANGELOG.md` under `Unreleased` whenever package code changes. Replace any "No user-facing changes" placeholder with an appropriate structured section.
+- Update the affected package's `UPGRADE.md` whenever a change is breaking, including clear migration instructions and before-and-after examples where useful.
+
 ## Good First Navigation Paths
 
 If you are new to the repo, these are the fastest entry points:
