@@ -61,7 +61,7 @@ final class ExtractChangelogSectionTest extends TestCase
     #[Test]
     public function it_fails_when_the_requested_version_is_missing(): void
     {
-        $changelogPath = $this->createTempChangelog(<<<MARKDOWN
+        $changelogPath = $this->createTempChangelog(<<<'MARKDOWN'
             # Changelog
 
             ## Unreleased
@@ -79,7 +79,7 @@ final class ExtractChangelogSectionTest extends TestCase
     #[Test]
     public function it_fails_when_the_requested_version_section_is_empty(): void
     {
-        $changelogPath = $this->createTempChangelog(<<<MARKDOWN
+        $changelogPath = $this->createTempChangelog(<<<'MARKDOWN'
             # Changelog
 
             ## 1.2.3
