@@ -39,7 +39,7 @@ use AzureOss\Storage\Common\Middleware\ClientFactory;
 use AzureOss\Storage\Common\Sas\SasProtocol;
 use GuzzleHttp\Client;
 use GuzzleHttp\Promise\PromiseInterface;
-use GuzzleHttp\Psr7\Uri;
+use GuzzleHttp\Psr7\Query;
 use GuzzleHttp\RequestOptions;
 use Psr\Http\Message\UriInterface;
 
@@ -377,7 +377,10 @@ final class BlobContainerClient
             ->setContainerName($this->containerName)
             ->build($this->credential);
 
-        return new Uri("$this->uri?$sas");
+        return $this->uri->withQuery(Query::build([
+            ...Query::parse($this->uri->getQuery()),
+            ...Query::parse($sas),
+        ]));
     }
 
     /**

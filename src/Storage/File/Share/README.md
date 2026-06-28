@@ -13,25 +13,18 @@ We picked up where they left off.
 
 <img src="https://azure-oss.github.io/img/logo.svg" width="150" alt="Logo">
 
-Our other packages:
+## Package ecosystem
 
-- **[azure-oss/storage](https://packagist.org/packages/azure-oss/storage)** – Meta package with Blob + Queue SDKs  
-  ![Downloads](https://img.shields.io/packagist/dt/azure-oss/storage)
-
-- **[azure-oss/storage-blob](https://packagist.org/packages/azure-oss/storage-blob)** – Azure Blob Storage SDK  
-  ![Downloads](https://img.shields.io/packagist/dt/azure-oss/storage-blob)
-
-- **[azure-oss/storage-queue](https://packagist.org/packages/azure-oss/storage-queue)** – Azure Storage Queue SDK  
-  ![Downloads](https://img.shields.io/packagist/dt/azure-oss/storage-queue)
-
-- **[azure-oss/storage-blob-flysystem](https://packagist.org/packages/azure-oss/storage-blob-flysystem)** – Flysystem adapter  
-  ![Downloads](https://img.shields.io/packagist/dt/azure-oss/storage-blob-flysystem)
-
-- **[azure-oss/storage-blob-laravel](https://packagist.org/packages/azure-oss/storage-blob-laravel)** – Laravel filesystem driver  
-  ![Downloads](https://img.shields.io/packagist/dt/azure-oss/storage-blob-laravel)
-
-- **[azure-oss/storage-blob-symfony](https://packagist.org/packages/azure-oss/storage-blob-symfony)** – Symfony bridge for the Flysystem adapter  
-  ![Downloads](https://img.shields.io/packagist/dt/azure-oss/storage-blob-symfony)
+- **[azure-oss/storage](https://packagist.org/packages/azure-oss/storage)** — Meta package for the Storage SDKs
+  - **[azure-oss/storage-common](https://packagist.org/packages/azure-oss/storage-common)** — Shared authentication, HTTP, and SAS primitives
+  - **[azure-oss/storage-blob](https://packagist.org/packages/azure-oss/storage-blob)** — Blob Storage SDK
+    - **[azure-oss/storage-blob-flysystem](https://packagist.org/packages/azure-oss/storage-blob-flysystem)** — Flysystem adapter
+    - **[azure-oss/storage-blob-laravel](https://packagist.org/packages/azure-oss/storage-blob-laravel)** — Laravel filesystem driver
+    - **[azure-oss/storage-blob-symfony](https://packagist.org/packages/azure-oss/storage-blob-symfony)** — Symfony Flysystem bridge
+  - **[azure-oss/storage-queue](https://packagist.org/packages/azure-oss/storage-queue)** — Queue Storage SDK
+    - **[azure-oss/storage-queue-laravel](https://packagist.org/packages/azure-oss/storage-queue-laravel)** — Laravel queue connector
+  - **[azure-oss/storage-file-share](https://packagist.org/packages/azure-oss/storage-file-share)** — File Share SDK (under construction)
+- **[azure-oss/identity](https://packagist.org/packages/azure-oss/identity)** — Microsoft Entra ID token authentication
 
 ## License
 

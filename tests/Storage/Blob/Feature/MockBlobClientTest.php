@@ -27,8 +27,11 @@ use AzureOss\Storage\Blob\Models\StageBlockOptions;
 use AzureOss\Storage\Blob\Models\StartCopyFromUriOptions;
 use AzureOss\Storage\Blob\Models\SyncCopyFromUriOptions;
 use AzureOss\Storage\Blob\Models\UploadBlobOptions;
+use AzureOss\Storage\Blob\Sas\BlobSasBuilder;
+use AzureOss\Storage\Blob\Sas\BlobSasPermissions;
 use AzureOss\Storage\Blob\Specialized\BlockBlobClient;
 use AzureOss\Storage\Common\ApiVersion;
+use AzureOss\Storage\Common\Auth\StorageSharedKeyCredential;
 use AzureOss\Storage\Common\Models\ETag;
 use AzureOss\Tests\Storage\CreatesTempFiles;
 use GuzzleHttp\Psr7\Response;
@@ -215,6 +218,41 @@ class MockBlobClientTest extends TestCase
         $base = $version->withVersion(null);
         self::assertArrayNotHasKey('versionid', $this->query($base->uri));
         self::assertSame('signature', $this->query($base->uri)['sig'] ?? null);
+    }
+
+    #[Test]
+    public function selected_blob_clients_generate_resource_specific_sas_uris(): void
+    {
+        $blob = new BlobClient(
+            new Uri('https://account.blob.core.windows.net/container/blob?custom=value'),
+            new StorageSharedKeyCredential('account', base64_encode(str_repeat('x', 32))),
+        );
+        $expiresOn = new \DateTimeImmutable('2030-01-01T00:00:00Z');
+
+        $snapshotUri = $blob
+            ->withSnapshot('2026-06-28T10:20:30.1234567Z')
+            ->generateSasUri(BlobSasBuilder::new()
+                ->setPermissions(new BlobSasPermissions(read: true))
+                ->setExpiresOn($expiresOn));
+        $snapshotQuery = $this->query($snapshotUri);
+
+        self::assertSame(1, substr_count((string) $snapshotUri, '?'));
+        self::assertSame('2026-06-28T10:20:30.1234567Z', $snapshotQuery['snapshot'] ?? null);
+        self::assertSame('bs', $snapshotQuery['sr'] ?? null);
+        self::assertSame('value', $snapshotQuery['custom'] ?? null);
+        self::assertArrayNotHasKey('sst', $snapshotQuery);
+
+        $versionUri = $blob
+            ->withVersion('2026-06-28T11:20:30.1234567Z')
+            ->generateSasUri(BlobSasBuilder::new()
+                ->setPermissions(new BlobSasPermissions(read: true))
+                ->setExpiresOn($expiresOn));
+        $versionQuery = $this->query($versionUri);
+
+        self::assertSame(1, substr_count((string) $versionUri, '?'));
+        self::assertSame('2026-06-28T11:20:30.1234567Z', $versionQuery['versionid'] ?? null);
+        self::assertSame('bv', $versionQuery['sr'] ?? null);
+        self::assertSame('value', $versionQuery['custom'] ?? null);
     }
 
     #[Test]

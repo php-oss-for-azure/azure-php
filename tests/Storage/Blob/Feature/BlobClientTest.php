@@ -69,6 +69,16 @@ final class BlobClientTest extends TestCase
         self::assertSame(['purpose' => 'backup'], $snapshot->getProperties()->metadata);
         self::assertSame('after snapshot', $blob->downloadStreaming()->content->getContents());
 
+        $snapshotSas = $snapshot->generateSasUri(
+            BlobSasBuilder::new()
+                ->setPermissions(new BlobSasPermissions(read: true))
+                ->setExpiresOn((new \DateTimeImmutable)->modify('+5 minutes')),
+        );
+        self::assertSame(
+            'before snapshot',
+            (new BlobClient($snapshotSas))->downloadStreaming()->content->getContents(),
+        );
+
         $snapshot->delete();
 
         self::assertFalse($snapshot->exists());
@@ -90,6 +100,16 @@ final class BlobClientTest extends TestCase
 
         self::assertSame('first version', $version->downloadStreaming()->content->getContents());
         self::assertFalse($version->getProperties()->isLatestVersion);
+
+        $versionSas = $version->generateSasUri(
+            BlobSasBuilder::new()
+                ->setPermissions(new BlobSasPermissions(read: true))
+                ->setExpiresOn((new \DateTimeImmutable)->modify('+5 minutes')),
+        );
+        self::assertSame(
+            'first version',
+            (new BlobClient($versionSas))->downloadStreaming()->content->getContents(),
+        );
 
         $version->delete();
 

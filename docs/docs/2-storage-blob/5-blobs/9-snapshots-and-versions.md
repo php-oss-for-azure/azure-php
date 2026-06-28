@@ -39,6 +39,8 @@ Snapshots are immutable. A snapshot client can download content, read properties
 $snapshot->delete();
 ```
 
+Calling `generateSasUri()` on a snapshot client creates a snapshot-specific SAS (`sr=bs`) and preserves the snapshot selector in the URI.
+
 ## Work With Blob Versions
 
 Enable blob versioning on the storage account before relying on versions. Azure then creates a version when supported write operations create or modify a blob.
@@ -78,5 +80,7 @@ Delete one previous version without affecting the current blob:
 ```php
 $blob->withVersion($versionId)->delete();
 ```
+
+Calling `generateSasUri()` on a version client creates a version-specific SAS (`sr=bv`) and preserves the version selector in the URI.
 
 Use `withSnapshot(null)` or `withVersion(null)` to remove that selector from a derived client. These methods return new clients and do not modify the original client.

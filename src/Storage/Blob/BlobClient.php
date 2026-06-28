@@ -50,7 +50,7 @@ use AzureOss\Storage\Common\Sas\SasProtocol;
 use GuzzleHttp\Client;
 use GuzzleHttp\Pool;
 use GuzzleHttp\Promise\PromiseInterface;
-use GuzzleHttp\Psr7\Uri;
+use GuzzleHttp\Psr7\Query;
 use GuzzleHttp\Psr7\Utils as StreamUtils;
 use GuzzleHttp\RequestOptions;
 use Psr\Http\Message\ResponseInterface;
@@ -629,12 +629,21 @@ final class BlobClient
             $blobSasBuilder->setProtocol(SasProtocol::HTTPS_AND_HTTP);
         }
 
+        $existingQuery = Query::parse($this->uri->getQuery());
+        $snapshot = $existingQuery['snapshot'] ?? null;
+        $versionId = $existingQuery['versionid'] ?? null;
+
         $sas = $blobSasBuilder
             ->setContainerName($this->containerName)
             ->setBlobName($this->blobName)
+            ->setSnapshot(is_string($snapshot) ? $snapshot : null)
+            ->setBlobVersionId(is_string($versionId) ? $versionId : null)
             ->build($this->credential);
 
-        return new Uri("$this->uri?$sas");
+        return $this->uri->withQuery(Query::build([
+            ...$existingQuery,
+            ...Query::parse($sas),
+        ]));
     }
 
     /**

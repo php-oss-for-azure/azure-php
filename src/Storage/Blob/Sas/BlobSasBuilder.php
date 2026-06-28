@@ -45,7 +45,9 @@ final class BlobSasBuilder
 
     private ?SasIpRange $ipRange = null;
 
-    private ?\DateTimeInterface $snapshotTime = null;
+    private ?string $snapshot = null;
+
+    private ?string $blobVersionId = null;
 
     private ?SasProtocol $protocol = null;
 
@@ -159,10 +161,26 @@ final class BlobSasBuilder
         return $this;
     }
 
-    /** Sets the snapshot timestamp for a snapshot-specific SAS. */
-    public function setSnapshotTime(\DateTimeInterface $value): self
+    /** Sets the opaque snapshot identifier for a snapshot-specific SAS. */
+    public function setSnapshot(?string $value): self
     {
-        $this->snapshotTime = $value;
+        $this->snapshot = $value !== '' ? $value : null;
+
+        if ($this->snapshot !== null) {
+            $this->blobVersionId = null;
+        }
+
+        return $this;
+    }
+
+    /** Sets the opaque blob version identifier for a version-specific SAS. */
+    public function setBlobVersionId(?string $value): self
+    {
+        $this->blobVersionId = $value !== '' ? $value : null;
+
+        if ($this->blobVersionId !== null) {
+            $this->snapshot = null;
+        }
 
         return $this;
     }
@@ -192,11 +210,16 @@ final class BlobSasBuilder
 
         $signedStart = $this->startsOn !== null ? DateHelper::formatAs8601Zulu($this->startsOn) : null;
         $signedExpiry = DateHelper::formatAs8601Zulu($this->expiresOn);
-        $signedResource = $this->blobName !== null ? 'b' : 'c';
+        $signedResource = match (true) {
+            $this->blobName === null => 'c',
+            $this->blobVersionId !== null => 'bv',
+            $this->snapshot !== null => 'bs',
+            default => 'b',
+        };
         $signedIp = $this->ipRange !== null ? (string) $this->ipRange : null;
         $signedProtocol = $this->protocol?->value;
         $signedVersion = $this->version ?? ApiVersion::latestGA()->value;
-        $signedSnapshotTime = $this->snapshotTime !== null ? (string) $this->snapshotTime->getTimestamp() : null;
+        $signedSnapshotOrVersion = $this->snapshot ?? $this->blobVersionId;
         $canonicalizedResource = $this->getCanonicalizedResource($sharedKeyCredential->accountName);
 
         $stringToSign = [
@@ -209,7 +232,7 @@ final class BlobSasBuilder
             $signedProtocol,
             $signedVersion,
             $signedResource,
-            $signedSnapshotTime,
+            $signedSnapshotOrVersion,
             $this->encryptionScope,
             $this->cacheControl,
             $this->contentDisposition,
@@ -230,7 +253,6 @@ final class BlobSasBuilder
             'sip' => $signedIp,
             'sig' => $signature,
             'spr' => $signedProtocol,
-            'sst' => $signedSnapshotTime,
             'sp' => $this->permissions,
             'si' => $this->identifier,
             'rscc' => $this->cacheControl,
