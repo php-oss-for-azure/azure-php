@@ -10,7 +10,9 @@ use AzureOss\Storage\Blob\Exceptions\InvalidConnectionStringException;
 use AzureOss\Storage\Blob\Exceptions\UnableToGenerateSasException;
 use AzureOss\Storage\Blob\Models\BlobContainer;
 use AzureOss\Storage\Blob\Models\BlobContainerClientOptions;
+use AzureOss\Storage\Blob\Models\BlobContainerInclude;
 use AzureOss\Storage\Blob\Models\BlobServiceClientOptions;
+use AzureOss\Storage\Blob\Models\GetBlobContainersOptions;
 use AzureOss\Storage\Blob\Models\TaggedBlob;
 use AzureOss\Storage\Blob\Responses\FindBlobsByTagBody;
 use AzureOss\Storage\Blob\Responses\ListContainersResponseBody;
@@ -22,6 +24,7 @@ use AzureOss\Storage\Common\Sas\AccountSasBuilder;
 use AzureOss\Storage\Common\Sas\AccountSasServices;
 use AzureOss\Storage\Common\Sas\SasProtocol;
 use GuzzleHttp\Client;
+use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Psr7\Uri;
 use GuzzleHttp\RequestOptions;
 use Psr\Http\Message\UriInterface;
@@ -95,7 +98,7 @@ final class BlobServiceClient
      * @param  string|null  $prefix  Optional prefix used to filter container names.
      * @return \Generator<BlobContainer>
      */
-    public function getBlobContainers(?string $prefix = null): \Generator
+    public function getBlobContainers(?string $prefix = null, GetBlobContainersOptions $options = new GetBlobContainersOptions): \Generator
     {
         $nextMarker = '';
 
@@ -105,6 +108,10 @@ final class BlobServiceClient
                     'comp' => 'list',
                     'marker' => $nextMarker !== '' ? $nextMarker : null,
                     'prefix' => $prefix,
+                    'maxresults' => $options->pageSize,
+                    'include' => $options->includes !== []
+                        ? implode(',', array_map(static fn (BlobContainerInclude $include): string => $include->value, $options->includes))
+                        : null,
                 ],
             ]);
             $body = ListContainersResponseBody::fromXml(new \SimpleXMLElement($response->getBody()->getContents()));
@@ -118,6 +125,35 @@ final class BlobServiceClient
                 break;
             }
         }
+    }
+
+    /**
+     * Restores a soft-deleted container identified by its name and deleted version.
+     *
+     * The version is returned by {@see self::getBlobContainers()} when
+     * {@see BlobContainerInclude::DELETED} is requested.
+     */
+    public function undeleteBlobContainer(string $deletedContainerName, string $deletedContainerVersion): BlobContainerClient
+    {
+        /** @phpstan-ignore-next-line */
+        return $this->undeleteBlobContainerAsync($deletedContainerName, $deletedContainerVersion)->wait();
+    }
+
+    /** Asynchronously restores a soft-deleted container and returns a client for it. */
+    public function undeleteBlobContainerAsync(string $deletedContainerName, string $deletedContainerVersion): PromiseInterface
+    {
+        $container = $this->getContainerClient($deletedContainerName);
+
+        return $this->client->putAsync($container->uri, [
+            RequestOptions::QUERY => [
+                'restype' => 'container',
+                'comp' => 'undelete',
+            ],
+            RequestOptions::HEADERS => [
+                'x-ms-deleted-container-name' => $deletedContainerName,
+                'x-ms-deleted-container-version' => $deletedContainerVersion,
+            ],
+        ])->then(fn () => $container);
     }
 
     /**

@@ -195,7 +195,30 @@ final class BlobClient
     public function deleteAsync(DeleteBlobOptions $options = new DeleteBlobOptions): PromiseInterface
     {
         return $this->client->deleteAsync($this->uri, [
-            RequestOptions::HEADERS => $options->conditions?->toHeaders('BlobClient::delete', RequestConditionSet::ALL) ?? [],
+            RequestOptions::HEADERS => [
+                ...($options->conditions?->toHeaders('BlobClient::delete', RequestConditionSet::ALL) ?? []),
+                ...($options->snapshotsOption === null ? [] : ['x-ms-delete-snapshots' => $options->snapshotsOption->value]),
+            ],
+        ]);
+    }
+
+    /**
+     * Restores a soft-deleted blob and all associated soft-deleted snapshots or versions.
+     *
+     * Calling this operation for an active blob succeeds without changing it. When blob
+     * versioning is enabled, restoring a previous version as the current blob still
+     * requires copying that version over the base blob.
+     */
+    public function undelete(): void
+    {
+        $this->undeleteAsync()->wait();
+    }
+
+    /** Asynchronously restores a soft-deleted blob and its deleted snapshots or versions. */
+    public function undeleteAsync(): PromiseInterface
+    {
+        return $this->client->putAsync($this->uri, [
+            RequestOptions::QUERY => ['comp' => 'undelete'],
         ]);
     }
 

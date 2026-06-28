@@ -26,6 +26,8 @@ final class BlobTest extends TestCase
                     <Content-Length>1024</Content-Length>
                     <Content-Type>text/plain</Content-Type>
                     <Content-MD5>sQqNsWTgdUEFt6mb5y4/5Q==</Content-MD5>
+                    <DeletedTime>Sun, 28 Sep 2025 18:41:57 GMT</DeletedTime>
+                    <RemainingRetentionDays>6</RemainingRetentionDays>
                 </Properties>
                 <Metadata>
                     <owner>storage-team</owner>
@@ -44,13 +46,15 @@ final class BlobTest extends TestCase
         self::assertSame(1024, $blob->properties->contentLength);
         self::assertSame('text/plain', $blob->properties->contentType);
         self::assertSame('2025-01-01T11:00:00.0000000Z', $blob->snapshot);
-        self::assertTrue($blob->deleted);
+        self::assertTrue($blob->isDeleted);
         self::assertSame('2025-01-01T12:00:00.0000000Z', $blob->versionId);
         self::assertTrue($blob->isLatestVersion);
         self::assertFalse($blob->hasVersionsOnly);
         self::assertSame(['owner' => 'storage-team', 'environment' => 'production'], $blob->metadata);
         self::assertSame($blob->metadata, $blob->properties->metadata);
         self::assertSame(['project' => 'blue', 'env' => 'test'], $blob->tags);
+        self::assertSame('2025-09-28T18:41:57+00:00', $blob->properties->deletedOn?->format(\DateTimeInterface::ATOM));
+        self::assertSame(6, $blob->properties->remainingRetentionDays);
     }
 
     #[Test]
@@ -65,7 +69,7 @@ final class BlobTest extends TestCase
             </Blob>
             XML));
 
-        self::assertFalse($blob->deleted);
+        self::assertFalse($blob->isDeleted);
         self::assertNull($blob->snapshot);
         self::assertNull($blob->versionId);
         self::assertNull($blob->isLatestVersion);
@@ -74,5 +78,7 @@ final class BlobTest extends TestCase
         self::assertNull($blob->tags);
         self::assertNull($blob->properties->lastModified);
         self::assertNull($blob->properties->metadata);
+        self::assertNull($blob->properties->deletedOn);
+        self::assertNull($blob->properties->remainingRetentionDays);
     }
 }

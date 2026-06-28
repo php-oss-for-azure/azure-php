@@ -5,8 +5,13 @@ declare(strict_types=1);
 namespace AzureOss\Tests\Storage\Blob\Feature;
 
 use AzureOss\Storage\Blob\BlobServiceClient;
+use AzureOss\Storage\Blob\Exceptions\BlobStorageException;
 use AzureOss\Storage\Blob\Exceptions\InvalidConnectionStringException;
 use AzureOss\Storage\Blob\Exceptions\UnableToGenerateSasException;
+use AzureOss\Storage\Blob\Models\BlobContainer;
+use AzureOss\Storage\Blob\Models\BlobContainerInclude;
+use AzureOss\Storage\Blob\Models\BlobErrorCode;
+use AzureOss\Storage\Blob\Models\GetBlobContainersOptions;
 use AzureOss\Storage\Common\ApiVersion;
 use AzureOss\Storage\Common\Auth\StorageSharedKeyCredential;
 use AzureOss\Storage\Common\Sas\AccountSasBuilder;
@@ -147,6 +152,48 @@ final class BlobServiceClientTest extends TestCase
     }
 
     #[Test]
+    public function soft_deleted_container_can_be_listed_and_restored(): void
+    {
+        $service = $this->service(softDeletes: true);
+        $container = $this->tempContainer(softDeletes: true);
+        $containerName = $container->containerName;
+        $container->delete();
+
+        $deletedContainers = array_values(array_filter(
+            iterator_to_array($service->getBlobContainers(
+                prefix: $containerName,
+                options: new GetBlobContainersOptions(includes: [BlobContainerInclude::DELETED]),
+            )),
+            static fn (BlobContainer $item): bool => $item->name === $containerName && $item->isDeleted,
+        ));
+
+        self::assertCount(1, $deletedContainers);
+        self::assertNotNull($deletedContainers[0]->versionId);
+        self::assertNotNull($deletedContainers[0]->properties->deletedOn);
+        self::assertNotNull($deletedContainers[0]->properties->remainingRetentionDays);
+
+        $restored = null;
+        self::assertEventually(
+            callback: function () use ($service, $containerName, $deletedContainers, &$restored): bool {
+                try {
+                    $restored ??= $service->undeleteBlobContainer($containerName, $deletedContainers[0]->versionId);
+
+                    return $restored->exists();
+                } catch (BlobStorageException $e) {
+                    if ($e->errorCode === BlobErrorCode::ContainerBeingDeleted) {
+                        return false;
+                    }
+
+                    throw $e;
+                }
+            },
+            maxAttempts: 20,
+            delayMs: 5000,
+            message: 'Soft-deleted container restoration timed out',
+        );
+    }
+
+    #[Test]
     public function find_blobs_by_tag_works(): void
     {
         $service = $this->service();
@@ -198,18 +245,14 @@ final class BlobServiceClientTest extends TestCase
         $sasServiceClient = new BlobServiceClient($sas);
 
         // Azure can transiently reject the first signed list request right after container creation.
-        self::assertEventually(
-            callback: function () use ($sasServiceClient): bool {
-                try {
-                    iterator_to_array($sasServiceClient->getBlobContainers());
-
-                    return true;
-                } catch (\Throwable) {
-                    return false;
-                }
+        $containers = null;
+        self::assertEventuallySucceeds(
+            callback: function () use ($sasServiceClient, &$containers): void {
+                $containers = iterator_to_array($sasServiceClient->getBlobContainers());
             },
-            message: 'Account SAS list request timed out'
+            maxAttempts: 30,
         );
+        self::assertIsArray($containers);
     }
 
     #[Test]

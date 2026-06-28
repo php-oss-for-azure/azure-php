@@ -21,7 +21,7 @@ final class Blob
         /** The snapshot timestamp for this blob snapshot when snapshots are included. */
         public readonly ?string $snapshot = null,
         /** Indicates whether this blob or blob version is soft-deleted. */
-        public readonly bool $deleted = false,
+        public readonly bool $isDeleted = false,
         /** The version identifier for this blob when versions are included. */
         public readonly ?string $versionId = null,
         /** Indicates whether this version is the current version of the blob. */
@@ -30,7 +30,7 @@ final class Blob
         public readonly ?array $metadata = null,
         /** @var array<string, string>|null Blob index tags, or null when tags were not returned. */
         public readonly ?array $tags = null,
-        /** Indicates whether the listed item only represents versions for a deleted base blob. */
+        /** Indicates whether the listed item represents a deleted base blob that still has versions. */
         public readonly ?bool $hasVersionsOnly = null,
     ) {}
 

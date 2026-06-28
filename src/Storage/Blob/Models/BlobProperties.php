@@ -37,6 +37,10 @@ final class BlobProperties
         public readonly string $contentLanguage = '',
         public readonly string $contentEncoding = '',
         public readonly ?ETag $eTag = null,
+        /** The time at which the blob or snapshot was soft-deleted. */
+        public readonly ?\DateTimeInterface $deletedOn = null,
+        /** Days remaining before the soft-deleted blob or snapshot is permanently removed. */
+        public readonly ?int $remainingRetentionDays = null,
     ) {}
 
     public static function fromResponseHeaders(ResponseInterface $response): self
@@ -57,6 +61,8 @@ final class BlobProperties
             $response->getHeaderLine('Content-Language'),
             $response->getHeaderLine('x-encoded-content-encoding'),
             $response->hasHeader('ETag') ? new ETag($response->getHeaderLine('ETag')) : null,
+            $response->hasHeader('x-ms-deleted-time') ? DateHelper::deserializeDateRfc1123Date($response->getHeaderLine('x-ms-deleted-time')) : null,
+            $response->hasHeader('x-ms-remaining-retention-days') ? (int) $response->getHeaderLine('x-ms-remaining-retention-days') : null,
         );
     }
 
@@ -83,6 +89,8 @@ final class BlobProperties
             (string) $xml->{'Content-Language'},
             (string) $xml->{'Content-Encoding'},
             $eTag !== '' ? new ETag($eTag) : null,
+            (string) $xml->DeletedTime !== '' ? DateHelper::deserializeDateRfc1123Date((string) $xml->DeletedTime) : null,
+            (string) $xml->RemainingRetentionDays !== '' ? (int) $xml->RemainingRetentionDays : null,
         );
     }
 }
