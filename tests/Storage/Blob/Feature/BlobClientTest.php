@@ -20,6 +20,7 @@ use AzureOss\Storage\Blob\Sas\BlobSasPermissions;
 use AzureOss\Storage\Common\Auth\StorageSharedKeyCredential;
 use AzureOss\Tests\Storage\CreatesTempContainers;
 use AzureOss\Tests\Storage\CreatesTempFiles;
+use AzureOss\Tests\Storage\RetryableAssertions;
 use GuzzleHttp\Psr7\NoSeekStream;
 use GuzzleHttp\Psr7\StreamDecoratorTrait;
 use GuzzleHttp\Psr7\Uri;
@@ -31,7 +32,7 @@ use Psr\Http\Message\StreamInterface;
 
 final class BlobClientTest extends TestCase
 {
-    use CreatesTempContainers, CreatesTempFiles;
+    use CreatesTempContainers, CreatesTempFiles, RetryableAssertions;
 
     #[Test]
     public function download_stream_works(): void
@@ -99,7 +100,7 @@ final class BlobClientTest extends TestCase
         $version = $blob->withVersion($versionId);
 
         self::assertSame('first version', $version->downloadStreaming()->content->getContents());
-        self::assertFalse($version->getProperties()->isLatestVersion);
+        self::assertNotTrue($version->getProperties()->isLatestVersion);
 
         $versionSas = $version->generateSasUri(
             BlobSasBuilder::new()
@@ -648,7 +649,7 @@ final class BlobClientTest extends TestCase
         $sourceSas = $sourceBlobClient->generateSasUri(
             BlobSasBuilder::new()
                 ->setPermissions(new BlobSasPermissions(read: true))
-                ->setExpiresOn((new \DateTime)->modify('+ 1min')),
+                ->setExpiresOn((new \DateTimeImmutable)->modify('+5 minutes')),
         );
 
         $targetBlobClient = $targetContainer->getBlobClient('copied');
@@ -717,7 +718,7 @@ final class BlobClientTest extends TestCase
         $sourceSas = $sourceBlobClient->generateSasUri(
             BlobSasBuilder::new()
                 ->setPermissions(new BlobSasPermissions(read: true))
-                ->setExpiresOn((new \DateTime)->modify('+ 1min')),
+                ->setExpiresOn((new \DateTimeImmutable)->modify('+5 minutes')),
         );
 
         $targetContainer = $this->tempContainer();
@@ -882,8 +883,6 @@ final class BlobClientTest extends TestCase
     #[Test]
     public function generate_sas_uri_works(): void
     {
-        $this->expectNotToPerformAssertions();
-
         $container = $this->tempContainer();
         $blobClient = $container->getBlobClient('blob');
         $blobClient->upload('test');
@@ -891,12 +890,18 @@ final class BlobClientTest extends TestCase
         $sas = $blobClient->generateSasUri(
             BlobSasBuilder::new()
                 ->setPermissions(new BlobSasPermissions(read: true))
-                ->setExpiresOn((new \DateTime)->modify('+ 1min')),
+                ->setExpiresOn((new \DateTimeImmutable)->modify('+5 minutes')),
         );
 
         $sasBlobClient = new BlobClient($sas);
 
-        $sasBlobClient->downloadStreaming();
+        self::assertEventuallySucceeds(
+            callback: function () use ($sasBlobClient): void {
+                self::assertSame('test', $sasBlobClient->downloadStreaming()->content->getContents());
+            },
+            // One initial attempt plus 180 one-second retries.
+            maxAttempts: 181,
+        );
     }
 
     #[Test]

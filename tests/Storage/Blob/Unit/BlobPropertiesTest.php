@@ -93,4 +93,15 @@ final class BlobPropertiesTest extends TestCase
         self::assertNull($properties->versionId);
         self::assertNull($properties->isLatestVersion);
     }
+
+    #[Test]
+    public function current_version_is_null_when_the_response_header_is_omitted(): void
+    {
+        $properties = BlobProperties::fromResponseHeaders(new Response(200, [
+            'Last-Modified' => 'Sun, 27 Sep 2009 18:41:57 GMT',
+            'Content-Length' => '0',
+        ]));
+
+        self::assertNull($properties->isLatestVersion);
+    }
 }
