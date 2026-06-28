@@ -1,17 +1,8 @@
 # Changelog
 
-## Unreleased
+## 1.0.0
 
-### Changed
+### Added
 
-- Renamed the package to `azure-oss/storage-blob-flysystem-bundle` and moved its PHP namespace to `AzureOss\Storage\BlobFlysystemBundle`.
-
-## 1.0.2
-
-### Changed
-
-- The package now requires `azure-oss/storage-blob-flysystem:^2.2`.
-
-## 1.0.1
-
-No user-facing changes since `1.0.0`.
+- Initial release of the Symfony bundle for `azure-oss/storage-blob-flysystem`.
+- Added the `azure_oss` Flysystem adapter configuration for Blob service clients, containers, path prefixes, MIME type detectors, visibility handling, and public containers.
