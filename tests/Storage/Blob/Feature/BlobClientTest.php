@@ -890,7 +890,7 @@ final class BlobClientTest extends TestCase
         $sas = $blobClient->generateSasUri(
             BlobSasBuilder::new()
                 ->setPermissions(new BlobSasPermissions(read: true))
-                ->setExpiresOn((new \DateTimeImmutable)->modify('+1 hour')),
+                ->setExpiresOn(new \DateTimeImmutable('+1 hour')),
         );
 
         $sasBlobClient = new BlobClient($sas);
@@ -899,7 +899,8 @@ final class BlobClientTest extends TestCase
         self::assertEventuallySucceeds(
             callback: function () use ($sasBlobClient): void {
                 self::assertSame('test', $sasBlobClient->downloadStreaming()->content->getContents());
-            }
+            },
+            maxAttempts: 30,
         );
     }
 

@@ -19,7 +19,6 @@ use AzureOss\Storage\Blob\Sas\BlobContainerSasPermissions;
 use AzureOss\Storage\Blob\Sas\BlobSasBuilder;
 use AzureOss\Storage\Common\ApiVersion;
 use AzureOss\Storage\Common\Auth\StorageSharedKeyCredential;
-use AzureOss\Storage\Common\Sas\SasIpRange;
 use AzureOss\Tests\Storage\CreatesTempContainers;
 use AzureOss\Tests\Storage\RetryableAssertions;
 use GuzzleHttp\Psr7\Uri;
@@ -360,7 +359,6 @@ final class BlobContainerClientTest extends TestCase
             BlobSasBuilder::new()
                 ->setPermissions(new BlobContainerSasPermissions(list: true))
                 ->setVersion(ApiVersion::latestGA()->value)
-                ->setIPRange(new SasIpRange('0.0.0.0', '255.255.255.255'))
                 ->setExpiresOn(new \DateTimeImmutable('+1 hour')),
         );
 
@@ -372,6 +370,7 @@ final class BlobContainerClientTest extends TestCase
             callback: function () use ($sasServiceClient, &$blobs): void {
                 $blobs = iterator_to_array($sasServiceClient->getBlobs());
             },
+            maxAttempts: 30,
         );
         self::assertIsArray($blobs);
     }

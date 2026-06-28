@@ -7,6 +7,7 @@ namespace AzureOss\Tests\Storage\Blob\Unit;
 use AzureOss\Storage\Blob\Sas\BlobSasBuilder;
 use AzureOss\Storage\Blob\Sas\BlobSasPermissions;
 use AzureOss\Storage\Common\Auth\StorageSharedKeyCredential;
+use AzureOss\Storage\Common\Sas\SasIpRange;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -36,6 +37,21 @@ final class BlobSasBuilderTest extends TestCase
         self::assertNotSame($baseQuery['sig'] ?? null, $versionQuery['sig'] ?? null);
         self::assertArrayNotHasKey('sst', $snapshotQuery);
         self::assertArrayNotHasKey('sst', $versionQuery);
+    }
+
+    #[Test]
+    public function it_includes_the_signed_ip_range_when_requested(): void
+    {
+        $builder = BlobSasBuilder::new()
+            ->setContainerName('container')
+            ->setBlobName('blob')
+            ->setPermissions(new BlobSasPermissions(read: true))
+            ->setIPRange(new SasIpRange('0.0.0.0', '255.255.255.255'))
+            ->setExpiresOn(new \DateTimeImmutable('2030-01-01T00:00:00Z'));
+
+        parse_str($builder->build($this->credential), $query);
+
+        self::assertSame('0.0.0.0-255.255.255.255', $query['sip'] ?? null);
     }
 
     /**
