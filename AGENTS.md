@@ -15,7 +15,7 @@ At the root you will find:
 
 ## Source Layout
 
-### `src/Storage/BlobSymfony`
+### `src/Storage/BlobFlysystemBundle`
 
 Symfony bridge for the Azure Blob Storage Flysystem adapter.
 
@@ -109,7 +109,7 @@ Docusaurus documentation website, split to `Azure-OSS/azure-oss.github.io`.
 
 The packages are layered roughly like this:
 
-`Storage/Common` -> `Storage/Blob` / `Storage/Queue` / `Storage/File/Share` -> `Storage/BlobFlysystem` -> `Storage/BlobLaravel` / `Storage/BlobSymfony`
+`Storage/Common` -> `Storage/Blob` / `Storage/Queue` / `Storage/File/Share` -> `Storage/BlobFlysystem` -> `Storage/BlobLaravel` / `Storage/BlobFlysystemBundle`
 
 `Identity` -> `Storage/Common`
 
@@ -125,7 +125,7 @@ In practice:
 - Put Flysystem-specific behavior in `src/Storage/BlobFlysystem`.
 - Put Laravel-specific filesystem behavior in `src/Storage/BlobLaravel`.
 - Put Laravel-specific queue behavior in `src/Storage/QueueLaravel`.
-- Put Symfony-specific behavior in `src/Storage/BlobSymfony`.
+- Put Symfony Flysystem bundle behavior in `src/Storage/BlobFlysystemBundle`.
 - Put documentation website behavior and content in `docs/`.
 
 ## Tests
@@ -139,7 +139,7 @@ Tests mirror the source packages under `tests/`.
 - `tests/Storage/BlobFlysystem`
 - `tests/Storage/BlobLaravel`
 - `tests/Storage/QueueLaravel`
-- `tests/Storage/BlobSymfony`
+- `tests/Storage/BlobFlysystemBundle`
 - `tests/Identity`
 
 There are also shared test helpers at the top level of `tests/`, such as temporary resource creation traits and retry assertions.

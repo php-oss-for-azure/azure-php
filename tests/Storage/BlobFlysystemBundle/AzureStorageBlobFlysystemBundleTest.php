@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace AzureOss\Tests\Storage\BlobSymfony;
+namespace AzureOss\Tests\Storage\BlobFlysystemBundle;
 
-use AzureOss\Storage\BlobSymfony\AzureStorageBlobAdapterDefinitionBuilder;
-use AzureOss\Storage\BlobSymfony\AzureStorageBlobFlysystemBundle;
+use AzureOss\Storage\BlobFlysystemBundle\AzureStorageBlobAdapterDefinitionBuilder;
+use AzureOss\Storage\BlobFlysystemBundle\AzureStorageBlobFlysystemBundle;
 use League\FlysystemBundle\Adapter\Builder\AdapterDefinitionBuilderInterface;
 use League\FlysystemBundle\DependencyInjection\FlysystemExtension;
 use League\FlysystemBundle\FlysystemBundle;

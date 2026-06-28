@@ -3,7 +3,7 @@ sidebar_position: 1
 title: Installation
 ---
 
-`azure-oss/storage-blob-symfony` connects the Azure Blob Storage Flysystem adapter to [`league/flysystem-bundle`](https://github.com/thephpleague/flysystem-bundle). It registers an `azure_oss` adapter so that Azure Blob Storage filesystems can be declared in `config/packages/flysystem.yaml`.
+`azure-oss/storage-blob-flysystem-bundle` connects the Azure Blob Storage Flysystem adapter to [`league/flysystem-bundle`](https://github.com/thephpleague/flysystem-bundle). It registers an `azure_oss` adapter so that Azure Blob Storage filesystems can be declared in `config/packages/flysystem.yaml`.
 
 ## Requirements
 
@@ -15,7 +15,7 @@ Version 3.7 introduced the pluggable adapter definition builder used by this bun
 ## Install With Composer
 
 ```bash
-composer require azure-oss/storage-blob-symfony
+composer require azure-oss/storage-blob-flysystem-bundle
 ```
 
 Symfony Flex normally registers the bundle automatically. Without Flex, add it to `config/bundles.php`:
@@ -25,7 +25,7 @@ Symfony Flex normally registers the bundle automatically. Without Flex, add it t
 
 return [
     // ...
-    AzureOss\Storage\BlobSymfony\AzureStorageBlobFlysystemBundle::class => ['all' => true],
+    AzureOss\Storage\BlobFlysystemBundle\AzureStorageBlobFlysystemBundle::class => ['all' => true],
 ];
 ```
 

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace AzureOss\Tests\Storage\BlobSymfony;
+namespace AzureOss\Tests\Storage\BlobFlysystemBundle;
 
 use AzureOss\Storage\Blob\BlobContainerClient;
 use AzureOss\Storage\BlobFlysystem\AzureBlobStorageAdapter;
-use AzureOss\Storage\BlobSymfony\AzureStorageBlobAdapterDefinitionBuilder;
+use AzureOss\Storage\BlobFlysystemBundle\AzureStorageBlobAdapterDefinitionBuilder;
 use League\FlysystemBundle\Test\AbstractAdapterDefinitionBuilderTest;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Reference;

@@ -7,7 +7,7 @@ on:
       - storage-blob-*
       - storage-blob-flysystem-*
       - storage-blob-laravel-*
-      - storage-blob-symfony-*
+      - storage-blob-flysystem-bundle-*
       - storage-queue-*
       - storage-queue-laravel-*
       - storage-file-share-*
@@ -40,11 +40,11 @@ jobs:
             repo: Azure-OSS/azure-storage-blob-laravel-php
             secret: DEPLOY_KEY_BLOB_LARAVEL
             changelog: src/Storage/BlobLaravel/CHANGELOG.md
-          - prefix: src/Storage/BlobSymfony
-            tag_prefix: storage-blob-symfony
-            repo: Azure-OSS/azure-storage-blob-symfony-php
-            secret: DEPLOY_KEY_BLOB_SYMFONY
-            changelog: src/Storage/BlobSymfony/CHANGELOG.md
+          - prefix: src/Storage/BlobFlysystemBundle
+            tag_prefix: storage-blob-flysystem-bundle
+            repo: Azure-OSS/azure-storage-blob-flysystem-bundle-php
+            secret: DEPLOY_KEY_BLOB_FLYSYSTEM_BUNDLE
+            changelog: src/Storage/BlobFlysystemBundle/CHANGELOG.md
           - prefix: src/Storage/Queue
             tag_prefix: storage-queue
             repo: Azure-OSS/azure-storage-queue-php

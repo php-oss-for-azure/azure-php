@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace AzureOss\Storage\BlobSymfony;
+namespace AzureOss\Storage\BlobFlysystemBundle;
 
 use League\FlysystemBundle\DependencyInjection\FlysystemExtension;
 use Symfony\Component\DependencyInjection\ContainerBuilder;

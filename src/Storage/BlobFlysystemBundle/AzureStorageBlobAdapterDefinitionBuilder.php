@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace AzureOss\Storage\BlobSymfony;
+namespace AzureOss\Storage\BlobFlysystemBundle;
 
 use AzureOss\Storage\Blob\BlobContainerClient;
 use AzureOss\Storage\BlobFlysystem\AzureBlobStorageAdapter;

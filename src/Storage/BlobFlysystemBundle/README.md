@@ -1,7 +1,7 @@
 # Azure Storage Blob Flysystem bundle for Symfony
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/azure-oss/storage-blob-symfony.svg)](https://packagist.org/packages/azure-oss/storage-blob-symfony)
-[![Packagist Downloads](https://img.shields.io/packagist/dt/azure-oss/storage-blob-symfony)](https://packagist.org/packages/azure-oss/storage-blob-symfony)
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/azure-oss/storage-blob-flysystem-bundle.svg)](https://packagist.org/packages/azure-oss/storage-blob-flysystem-bundle)
+[![Packagist Downloads](https://img.shields.io/packagist/dt/azure-oss/storage-blob-flysystem-bundle)](https://packagist.org/packages/azure-oss/storage-blob-flysystem-bundle)
 
 Community-driven PHP SDKs for Azure, because Microsoft won't.
 
@@ -20,7 +20,7 @@ This package is the Symfony bridge for [`azure-oss/storage-blob-flysystem`](http
   - **[azure-oss/storage-blob](https://packagist.org/packages/azure-oss/storage-blob)** — Blob Storage SDK
     - **[azure-oss/storage-blob-flysystem](https://packagist.org/packages/azure-oss/storage-blob-flysystem)** — Flysystem adapter
     - **[azure-oss/storage-blob-laravel](https://packagist.org/packages/azure-oss/storage-blob-laravel)** — Laravel filesystem driver
-    - **[azure-oss/storage-blob-symfony](https://packagist.org/packages/azure-oss/storage-blob-symfony)** — Symfony Flysystem bridge
+    - **[azure-oss/storage-blob-flysystem-bundle](https://packagist.org/packages/azure-oss/storage-blob-flysystem-bundle)** — Symfony Flysystem bundle
   - **[azure-oss/storage-queue](https://packagist.org/packages/azure-oss/storage-queue)** — Queue Storage SDK
     - **[azure-oss/storage-queue-laravel](https://packagist.org/packages/azure-oss/storage-queue-laravel)** — Laravel queue connector
   - **[azure-oss/storage-file-share](https://packagist.org/packages/azure-oss/storage-file-share)** — File Share SDK (under construction)
@@ -29,12 +29,12 @@ This package is the Symfony bridge for [`azure-oss/storage-blob-flysystem`](http
 ## Install
 
 ```shell
-composer require azure-oss/storage-blob-symfony
+composer require azure-oss/storage-blob-flysystem-bundle
 ```
 
 ## Documentation
 
-You can read the documentation [here](https://azure-oss.github.io/category/storage-blob-symfony).
+You can read the documentation [here](https://azure-oss.github.io/category/storage-blob-flysystem-bundle).
 
 ## License
 

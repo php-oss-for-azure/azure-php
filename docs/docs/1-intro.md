@@ -26,7 +26,7 @@ Flysystem, or Laravel, we have you covered.
 - **[`azure-oss/storage-queue`](/category/storage-queue-core)** — Azure Storage Queue SDK
 - **[`azure-oss/storage-blob-flysystem`](/category/storage-blob-flysystem)** — Flysystem 3.x adapter for Azure Blob Storage
 - **[`azure-oss/storage-blob-laravel`](/category/storage-blob-laravel)** — Laravel filesystem driver for Azure Blob Storage
-- **[`azure-oss/storage-blob-symfony`](/category/storage-blob-symfony)** — Symfony bridge for the Azure Blob Storage Flysystem adapter
+- **[`azure-oss/storage-blob-flysystem-bundle`](/category/storage-blob-flysystem-bundle)** — Symfony bundle for the Azure Blob Storage Flysystem adapter
 - **[`azure-oss/storage-queue-laravel`](/category/storage-queue-laravel)** — Laravel Queue connector for Azure Storage Queues
 - **[`azure-oss/azure-identity`](https://github.com/Azure-OSS/azure-identity-php)** — Azure Identity client for token-based authentication
   

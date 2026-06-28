@@ -1,8 +1,0 @@
-{
-  "label": "Storage Blob (Symfony)",
-  "position": 5,
-  "link": {
-    "type": "generated-index",
-    "description": "Configure Azure Blob Storage as a Symfony filesystem with azure-oss/storage-blob-symfony and league/flysystem-bundle."
-  }
-}
