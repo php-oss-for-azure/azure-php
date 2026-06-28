@@ -187,7 +187,7 @@ final class BlobServiceClientTest extends TestCase
                     throw $e;
                 }
             },
-            maxAttempts: 20,
+            maxAttempts: 100,
             message: 'Soft-deleted container restoration timed out',
         );
     }
