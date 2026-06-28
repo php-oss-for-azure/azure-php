@@ -16,7 +16,7 @@
   },
   "require": {
     "php": "^8.2",
-    "azure-oss/storage-blob-flysystem": "^2.0",
+    "azure-oss/storage-blob-flysystem": "^2.2",
     "league/flysystem-bundle": "^3.7"
   }
 }
