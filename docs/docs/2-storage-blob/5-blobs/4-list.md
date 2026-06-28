@@ -52,3 +52,28 @@ foreach ($container->getBlobs(options: $options) as $blob) {
     // ...
 }
 ```
+
+## Include Additional Blob Data
+
+Blob listings return a core set of properties by default. Request additional datasets with `BlobInclude` values:
+
+```php
+use AzureOss\Storage\Blob\Models\BlobInclude;
+use AzureOss\Storage\Blob\Models\GetBlobsOptions;
+
+$options = new GetBlobsOptions(includes: [
+    BlobInclude::SNAPSHOTS,
+    BlobInclude::METADATA,
+    BlobInclude::TAGS,
+    BlobInclude::VERSIONS,
+]);
+
+foreach ($container->getBlobs(options: $options) as $blob) {
+    echo $blob->name.PHP_EOL;
+    echo $blob->snapshot.PHP_EOL;
+    print_r($blob->metadata ?? []);
+    print_r($blob->tags ?? []);
+}
+```
+
+Supported includes are `SNAPSHOTS`, `METADATA`, `UNCOMMITTED_BLOBS`, `COPY`, `DELETED`, `TAGS`, `VERSIONS`, and `DELETED_WITH_VERSIONS`. `Blob::$snapshot` is `null` unless snapshots are returned by Azure, `Blob::$metadata` is `null` unless metadata is returned, and `Blob::$tags` is `null` unless tags are returned. The same options can be passed to `getBlobsByHierarchy()`.

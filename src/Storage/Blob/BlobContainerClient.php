@@ -16,6 +16,7 @@ use AzureOss\Storage\Blob\Models\BlobClientOptions;
 use AzureOss\Storage\Blob\Models\BlobContainerClientOptions;
 use AzureOss\Storage\Blob\Models\BlobContainerProperties;
 use AzureOss\Storage\Blob\Models\BlobErrorCode;
+use AzureOss\Storage\Blob\Models\BlobInclude;
 use AzureOss\Storage\Blob\Models\BlobLeaseClientOptions;
 use AzureOss\Storage\Blob\Models\BlobPrefix;
 use AzureOss\Storage\Blob\Models\BlockBlobClientOptions;
@@ -250,7 +251,7 @@ final class BlobContainerClient
     /**
      * Replaces all user-defined metadata on the container.
      *
-     * @param  array<string>  $metadata
+     * @param  array<string, string>  $metadata
      */
     public function setMetadata(array $metadata, SetContainerMetadataOptions $options = new SetContainerMetadataOptions): void
     {
@@ -260,7 +261,7 @@ final class BlobContainerClient
     /**
      * Asynchronously replaces all user-defined metadata on the container.
      *
-     * @param  array<string>  $metadata
+     * @param  array<string, string>  $metadata
      */
     public function setMetadataAsync(array $metadata, SetContainerMetadataOptions $options = new SetContainerMetadataOptions): PromiseInterface
     {
@@ -289,7 +290,7 @@ final class BlobContainerClient
         $nextMarker = '';
 
         while (true) {
-            $response = $this->listBlobs($prefix, null, $nextMarker, $options->pageSize);
+            $response = $this->listBlobs($prefix, null, $nextMarker, $options->pageSize, $options->includes);
             $nextMarker = $response->nextMarker;
 
             foreach ($response->blobs as $blob) {
@@ -312,7 +313,7 @@ final class BlobContainerClient
         $nextMarker = '';
 
         while (true) {
-            $response = $this->listBlobs($prefix, $delimiter, $nextMarker, $options->pageSize);
+            $response = $this->listBlobs($prefix, $delimiter, $nextMarker, $options->pageSize, $options->includes);
             $nextMarker = $response->nextMarker;
 
             foreach ($response->blobs as $blob) {
@@ -329,7 +330,10 @@ final class BlobContainerClient
         }
     }
 
-    private function listBlobs(?string $prefix, ?string $delimiter, string $marker, ?int $maxResults): ListBlobsResponseBody
+    /**
+     * @param  BlobInclude[]  $includes
+     */
+    private function listBlobs(?string $prefix, ?string $delimiter, string $marker, ?int $maxResults, array $includes): ListBlobsResponseBody
     {
         $response = $this->client->get($this->uri, [
             RequestOptions::QUERY => [
@@ -339,6 +343,9 @@ final class BlobContainerClient
                 'marker' => $marker !== '' ? $marker : null,
                 'delimiter' => $delimiter,
                 'maxresults' => $maxResults,
+                'include' => $includes !== []
+                    ? implode(',', array_map(static fn (BlobInclude $include): string => $include->value, $includes))
+                    : null,
             ],
         ]);
 

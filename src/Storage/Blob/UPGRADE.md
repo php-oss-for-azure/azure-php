@@ -12,6 +12,14 @@ composer require azure-oss/storage-blob:^2.0
 
 This release also requires `azure-oss/storage-common:^2.0`. Composer will update that dependency automatically unless your application requires `azure-oss/storage-common` directly, in which case update that constraint too.
 
+### Additional 2.x listing model changes
+
+Review these if your application consumes blob listings.
+
+`BlobProperties::$lastModified` is now nullable. Azure does not return this property for uncommitted blobs requested with `BlobInclude::UNCOMMITTED_BLOBS`. Check for `null` before using the timestamp when processing listings that include uncommitted blobs.
+
+`Blob::$metadata`, `Blob::$tags`, and list-derived `BlobProperties::$metadata` are now nullable. Azure omits these datasets unless they are explicitly included in the listing response, so check for `null` before iterating or indexing them.
+
 ### Removed class aliases
 
 The backwards-compatible options aliases under `AzureOss\Storage\Blob\Options` have been removed. Import the model classes directly instead:

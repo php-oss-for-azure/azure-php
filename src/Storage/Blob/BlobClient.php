@@ -137,7 +137,7 @@ final class BlobClient
     /**
      * Replaces all user-defined metadata on the blob.
      *
-     * @param  array<string>  $metadata
+     * @param  array<string, string>  $metadata
      */
     public function setMetadata(array $metadata, SetBlobMetadataOptions $options = new SetBlobMetadataOptions): void
     {
@@ -147,7 +147,7 @@ final class BlobClient
     /**
      * Asynchronously replaces all user-defined metadata on the blob.
      *
-     * @param  array<string>  $metadata
+     * @param  array<string, string>  $metadata
      */
     public function setMetadataAsync(array $metadata, SetBlobMetadataOptions $options = new SetBlobMetadataOptions): PromiseInterface
     {

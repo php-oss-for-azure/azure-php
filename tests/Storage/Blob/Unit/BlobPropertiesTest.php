@@ -33,6 +33,7 @@ final class BlobPropertiesTest extends TestCase
             'x-ms-meta-owner' => 'storage-team',
         ]));
 
+        self::assertNotNull($properties->lastModified);
         self::assertSame('2009-09-27T18:41:57+00:00', $properties->lastModified->format(\DateTimeInterface::ATOM));
         self::assertSame(512, $properties->contentLength);
         self::assertSame('text/plain', $properties->contentType);
@@ -70,11 +71,12 @@ final class BlobPropertiesTest extends TestCase
             </Properties>
             XML));
 
+        self::assertNotNull($properties->lastModified);
         self::assertSame('2009-09-27T18:41:57+00:00', $properties->lastModified->format(\DateTimeInterface::ATOM));
         self::assertSame(1024, $properties->contentLength);
         self::assertSame('text/plain', $properties->contentType);
         self::assertSame('b10a8db164e0754105b7a99be72e3fe5', $properties->contentMD5);
-        self::assertSame([], $properties->metadata);
+        self::assertNull($properties->metadata);
         self::assertSame('copy-id', $properties->copyId);
         self::assertSame('https://account.blob.core.windows.net/container/source.txt', (string) $properties->copySource);
         self::assertSame(CopyStatus::SUCCESS, $properties->copyStatus);

@@ -928,6 +928,7 @@ final class BlobClientTest extends TestCase
 
         $props = $blob->getProperties();
 
+        self::assertNotNull($props->metadata);
         self::assertEquals('bar', $props->metadata['foo']);
         self::assertEquals('qaz', $props->metadata['baz']);
     }

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Added `BlobInclude` and support for requesting snapshots, metadata, uncommitted blobs, copy information, deleted blobs, tags, versions, and deleted blobs with versions from `BlobContainerClient::getBlobs()` and `getBlobsByHierarchy()`.
+- Added list-response snapshot, metadata, tags, version, and deletion state to `Blob`.
+
 ## 2.1.0
 
 Changes since `2.0.1`.

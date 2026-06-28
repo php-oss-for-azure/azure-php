@@ -9,9 +9,11 @@ use AzureOss\Storage\Blob\BlobServiceClient;
 use AzureOss\Storage\Blob\Models\AbortCopyFromUriOptions;
 use AzureOss\Storage\Blob\Models\AcquireBlobLeaseOptions;
 use AzureOss\Storage\Blob\Models\BlobHttpHeaders;
+use AzureOss\Storage\Blob\Models\BlobInclude;
 use AzureOss\Storage\Blob\Models\BlobRequestConditions;
 use AzureOss\Storage\Blob\Models\BlobServiceClientOptions;
 use AzureOss\Storage\Blob\Models\DeleteContainerOptions;
+use AzureOss\Storage\Blob\Models\GetBlobsOptions;
 use AzureOss\Storage\Blob\Models\GetBlobTagsOptions;
 use AzureOss\Storage\Blob\Models\GetContainerPropertiesOptions;
 use AzureOss\Storage\Blob\Models\SetBlobTagsOptions;
@@ -116,6 +118,56 @@ class MockBlobClientTest extends TestCase
 
         self::assertCount(1, $requests);
         self::assertSame(ApiVersion::V2024_08_04->value, $requests[0]->getHeaderLine('x-ms-version'));
+    }
+
+    #[Test]
+    public function get_blobs_sends_includes(): void
+    {
+        Server::enqueue([
+            new Response(200, body: '<EnumerationResults><Blobs/><NextMarker/></EnumerationResults>'),
+            new Response(501),
+        ]);
+
+        $serverUrl = Server::$url;
+        self::assertIsString($serverUrl);
+        $container = (new BlobServiceClient(new Uri($serverUrl.'/devstoreaccount1')))->getContainerClient('test');
+
+        iterator_to_array($container->getBlobs(options: new GetBlobsOptions(includes: [
+            BlobInclude::SNAPSHOTS,
+            BlobInclude::METADATA,
+            BlobInclude::UNCOMMITTED_BLOBS,
+            BlobInclude::TAGS,
+            BlobInclude::VERSIONS,
+        ])));
+
+        $requests = Server::received();
+        parse_str($requests[0]->getUri()->getQuery(), $query);
+
+        self::assertSame('snapshots,metadata,uncommittedblobs,tags,versions', $query['include'] ?? null);
+    }
+
+    #[Test]
+    public function get_blobs_by_hierarchy_sends_includes(): void
+    {
+        Server::enqueue([
+            new Response(200, body: '<EnumerationResults><Blobs/><NextMarker/></EnumerationResults>'),
+            new Response(501),
+        ]);
+
+        $serverUrl = Server::$url;
+        self::assertIsString($serverUrl);
+        $container = (new BlobServiceClient(new Uri($serverUrl.'/devstoreaccount1')))->getContainerClient('test');
+
+        iterator_to_array($container->getBlobsByHierarchy(options: new GetBlobsOptions(includes: [
+            BlobInclude::COPY,
+            BlobInclude::DELETED,
+            BlobInclude::DELETED_WITH_VERSIONS,
+        ])));
+
+        $requests = Server::received();
+        parse_str($requests[0]->getUri()->getQuery(), $query);
+
+        self::assertSame('copy,deleted,deletedwithversions', $query['include'] ?? null);
     }
 
     #[Test]

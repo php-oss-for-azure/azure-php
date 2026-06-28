@@ -18,14 +18,15 @@ use Psr\Http\Message\UriInterface;
 final class BlobProperties
 {
     /**
-     * @param  array<string>  $metadata
+     * @param  array<string, string>|null  $metadata
      */
     private function __construct(
-        public readonly \DateTimeInterface $lastModified,
+        public readonly ?\DateTimeInterface $lastModified,
         public readonly int $contentLength,
         public readonly string $contentType,
         public readonly ?string $contentMD5,
-        public readonly array $metadata,
+        /** @var array<string, string>|null User-defined metadata, or null when metadata was not returned. */
+        public readonly ?array $metadata,
         public readonly ?string $copyId = null,
         public readonly ?UriInterface $copySource = null,
         public readonly ?CopyStatus $copyStatus = null,
@@ -59,16 +60,19 @@ final class BlobProperties
         );
     }
 
-    public static function fromXml(\SimpleXMLElement $xml): self
+    /**
+     * @param  array<string, string>|null  $metadata
+     */
+    public static function fromXml(\SimpleXMLElement $xml, ?array $metadata = null): self
     {
         $eTag = (string) $xml->Etag !== '' ? (string) $xml->Etag : (string) $xml->ETag;
 
         return new self(
-            DateHelper::deserializeDateRfc1123Date((string) $xml->{'Last-Modified'}),
+            (string) $xml->{'Last-Modified'} !== '' ? DateHelper::deserializeDateRfc1123Date((string) $xml->{'Last-Modified'}) : null,
             (int) $xml->{'Content-Length'},
             (string) $xml->{'Content-Type'},
             HashHelper::deserializeMd5((string) $xml->{'Content-MD5'}),
-            [], // TODO support include metadata
+            $metadata,
             (string) $xml->CopyId !== '' ? (string) $xml->CopyId : null,
             (string) $xml->CopySource !== '' ? new Uri((string) $xml->CopySource) : null,
             (string) $xml->CopyStatus !== '' ? CopyStatus::tryFrom((string) $xml->CopyStatus) : null,
