@@ -8,11 +8,15 @@ use AzureOss\Storage\Blob\BlobClient;
 use AzureOss\Storage\Blob\BlobServiceClient;
 use AzureOss\Storage\Blob\Models\AbortCopyFromUriOptions;
 use AzureOss\Storage\Blob\Models\AcquireBlobLeaseOptions;
+use AzureOss\Storage\Blob\Models\BlobContainerInclude;
 use AzureOss\Storage\Blob\Models\BlobHttpHeaders;
 use AzureOss\Storage\Blob\Models\BlobInclude;
 use AzureOss\Storage\Blob\Models\BlobRequestConditions;
 use AzureOss\Storage\Blob\Models\BlobServiceClientOptions;
+use AzureOss\Storage\Blob\Models\DeleteBlobOptions;
 use AzureOss\Storage\Blob\Models\DeleteContainerOptions;
+use AzureOss\Storage\Blob\Models\DeleteSnapshotsOption;
+use AzureOss\Storage\Blob\Models\GetBlobContainersOptions;
 use AzureOss\Storage\Blob\Models\GetBlobsOptions;
 use AzureOss\Storage\Blob\Models\GetBlobTagsOptions;
 use AzureOss\Storage\Blob\Models\GetContainerPropertiesOptions;
@@ -161,13 +165,97 @@ class MockBlobClientTest extends TestCase
         iterator_to_array($container->getBlobsByHierarchy(options: new GetBlobsOptions(includes: [
             BlobInclude::COPY,
             BlobInclude::DELETED,
-            BlobInclude::DELETED_WITH_VERSIONS,
         ])));
 
         $requests = Server::received();
         parse_str($requests[0]->getUri()->getQuery(), $query);
 
-        self::assertSame('copy,deleted,deletedwithversions', $query['include'] ?? null);
+        self::assertSame('copy,deleted', $query['include'] ?? null);
+    }
+
+    #[Test]
+    public function delete_blob_sends_snapshot_option(): void
+    {
+        Server::enqueue([new Response(202), new Response(501)]);
+
+        $this->blob->delete(new DeleteBlobOptions(
+            snapshotsOption: DeleteSnapshotsOption::INCLUDE_SNAPSHOTS,
+        ));
+
+        $requests = Server::received();
+
+        self::assertCount(1, $requests);
+        self::assertSame('DELETE', $requests[0]->getMethod());
+        self::assertSame('include', $requests[0]->getHeaderLine('x-ms-delete-snapshots'));
+    }
+
+    #[Test]
+    public function undelete_blob_sends_correct_request(): void
+    {
+        Server::enqueue([new Response(200), new Response(501)]);
+
+        $this->blob->undelete();
+
+        $requests = Server::received();
+        parse_str($requests[0]->getUri()->getQuery(), $query);
+
+        self::assertCount(1, $requests);
+        self::assertSame('PUT', $requests[0]->getMethod());
+        self::assertSame('undelete', $query['comp'] ?? null);
+    }
+
+    #[Test]
+    public function get_blob_containers_sends_options(): void
+    {
+        Server::enqueue([
+            new Response(200, body: '<EnumerationResults><Containers/><NextMarker/></EnumerationResults>'),
+            new Response(501),
+        ]);
+
+        $serverUrl = Server::$url;
+        self::assertIsString($serverUrl);
+        $service = new BlobServiceClient(new Uri($serverUrl.'/devstoreaccount1'));
+
+        iterator_to_array($service->getBlobContainers('docs-', new GetBlobContainersOptions(
+            pageSize: 25,
+            includes: [
+                BlobContainerInclude::METADATA,
+                BlobContainerInclude::DELETED,
+                BlobContainerInclude::SYSTEM,
+            ],
+        )));
+
+        $requests = Server::received();
+        parse_str($requests[0]->getUri()->getQuery(), $query);
+
+        self::assertCount(1, $requests);
+        self::assertSame('docs-', $query['prefix'] ?? null);
+        self::assertSame('25', $query['maxresults'] ?? null);
+        self::assertSame('metadata,deleted,system', $query['include'] ?? null);
+    }
+
+    #[Test]
+    public function undelete_blob_container_sends_correct_request_and_returns_client(): void
+    {
+        Server::enqueue([new Response(201), new Response(501)]);
+
+        $serverUrl = Server::$url;
+        self::assertIsString($serverUrl);
+        $service = new BlobServiceClient(new Uri($serverUrl.'/devstoreaccount1'));
+
+        $container = $service->undeleteBlobContainer('photos', '01D9A8BY7Q4Y4J');
+
+        $requests = Server::received();
+        parse_str($requests[0]->getUri()->getQuery(), $query);
+
+        self::assertCount(1, $requests);
+        self::assertSame('PUT', $requests[0]->getMethod());
+        self::assertSame('/photos', $requests[0]->getUri()->getPath());
+        self::assertSame('container', $query['restype'] ?? null);
+        self::assertSame('undelete', $query['comp'] ?? null);
+        self::assertSame('photos', $requests[0]->getHeaderLine('x-ms-deleted-container-name'));
+        self::assertSame('01D9A8BY7Q4Y4J', $requests[0]->getHeaderLine('x-ms-deleted-container-version'));
+        self::assertSame('photos', $container->containerName);
     }
 
     #[Test]

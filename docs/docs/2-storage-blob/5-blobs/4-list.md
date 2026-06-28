@@ -76,4 +76,6 @@ foreach ($container->getBlobs(options: $options) as $blob) {
 }
 ```
 
-Supported includes are `SNAPSHOTS`, `METADATA`, `UNCOMMITTED_BLOBS`, `COPY`, `DELETED`, `TAGS`, `VERSIONS`, and `DELETED_WITH_VERSIONS`. `Blob::$snapshot` is `null` unless snapshots are returned by Azure, `Blob::$metadata` is `null` unless metadata is returned, and `Blob::$tags` is `null` unless tags are returned. The same options can be passed to `getBlobsByHierarchy()`.
+Supported includes are `SNAPSHOTS`, `METADATA`, `UNCOMMITTED_BLOBS`, `COPY`, `DELETED`, `TAGS`, and `VERSIONS`. `Blob::$snapshot` is `null` unless snapshots are returned by Azure, `Blob::$metadata` is `null` unless metadata is returned, and `Blob::$tags` is `null` unless tags are returned. The same options can be passed to `getBlobsByHierarchy()`.
+
+To discover recoverable blobs, request `BlobInclude::DELETED`. Deleted results have `Blob::$isDeleted` set to `true`; their deletion time and remaining retention window are available through `BlobProperties::$deletedOn` and `BlobProperties::$remainingRetentionDays`.

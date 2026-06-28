@@ -8,9 +8,11 @@ use AzureOss\Storage\Blob\BlobClient;
 use AzureOss\Storage\Blob\Exceptions\BlobStorageException;
 use AzureOss\Storage\Blob\Models\BlobErrorCode;
 use AzureOss\Storage\Blob\Models\BlobHttpHeaders;
+use AzureOss\Storage\Blob\Models\BlobInclude;
 use AzureOss\Storage\Blob\Models\BlobRequestConditions;
 use AzureOss\Storage\Blob\Models\CopyStatus;
 use AzureOss\Storage\Blob\Models\DownloadBlobOptions;
+use AzureOss\Storage\Blob\Models\GetBlobsOptions;
 use AzureOss\Storage\Blob\Models\UploadBlobOptions;
 use AzureOss\Storage\Blob\Sas\BlobSasBuilder;
 use AzureOss\Storage\Blob\Sas\BlobSasPermissions;
@@ -204,6 +206,29 @@ final class BlobClientTest extends TestCase
         $this->expectNotToPerformAssertions();
 
         $this->tempContainer()->getBlobClient('noop')->deleteIfExists();
+    }
+
+    #[Test]
+    public function soft_deleted_blob_can_be_listed_and_restored(): void
+    {
+        $container = $this->tempContainer(softDeletes: true);
+        $blob = $container->getBlobClient('recoverable.txt');
+        $blob->upload('recover me');
+        $blob->delete();
+
+        $deletedBlobs = iterator_to_array($container->getBlobs(
+            prefix: 'recoverable.txt',
+            options: new GetBlobsOptions(includes: [BlobInclude::DELETED]),
+        ));
+
+        self::assertCount(1, $deletedBlobs);
+        self::assertTrue($deletedBlobs[0]->isDeleted);
+        self::assertNotNull($deletedBlobs[0]->properties->deletedOn);
+        self::assertNotNull($deletedBlobs[0]->properties->remainingRetentionDays);
+
+        $blob->undelete();
+
+        self::assertSame('recover me', $blob->downloadStreaming()->content->getContents());
     }
 
     #[Test]

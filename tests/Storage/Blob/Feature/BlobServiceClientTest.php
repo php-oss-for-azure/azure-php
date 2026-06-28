@@ -7,6 +7,9 @@ namespace AzureOss\Tests\Storage\Blob\Feature;
 use AzureOss\Storage\Blob\BlobServiceClient;
 use AzureOss\Storage\Blob\Exceptions\InvalidConnectionStringException;
 use AzureOss\Storage\Blob\Exceptions\UnableToGenerateSasException;
+use AzureOss\Storage\Blob\Models\BlobContainer;
+use AzureOss\Storage\Blob\Models\BlobContainerInclude;
+use AzureOss\Storage\Blob\Models\GetBlobContainersOptions;
 use AzureOss\Storage\Common\ApiVersion;
 use AzureOss\Storage\Common\Auth\StorageSharedKeyCredential;
 use AzureOss\Storage\Common\Sas\AccountSasBuilder;
@@ -144,6 +147,32 @@ final class BlobServiceClientTest extends TestCase
         $after = iterator_to_array($this->service()->getBlobContainers('test-prefixed-'));
 
         self::assertCount(1, $after);
+    }
+
+    #[Test]
+    public function soft_deleted_container_can_be_listed_and_restored(): void
+    {
+        $service = $this->service(softDeletes: true);
+        $container = $this->tempContainer(softDeletes: true);
+        $containerName = $container->containerName;
+        $container->delete();
+
+        $deletedContainers = array_values(array_filter(
+            iterator_to_array($service->getBlobContainers(
+                prefix: $containerName,
+                options: new GetBlobContainersOptions(includes: [BlobContainerInclude::DELETED]),
+            )),
+            static fn (BlobContainer $item): bool => $item->name === $containerName && $item->isDeleted,
+        ));
+
+        self::assertCount(1, $deletedContainers);
+        self::assertNotNull($deletedContainers[0]->versionId);
+        self::assertNotNull($deletedContainers[0]->properties->deletedOn);
+        self::assertNotNull($deletedContainers[0]->properties->remainingRetentionDays);
+
+        $restored = $service->undeleteBlobContainer($containerName, $deletedContainers[0]->versionId);
+
+        self::assertTrue($restored->exists());
     }
 
     #[Test]

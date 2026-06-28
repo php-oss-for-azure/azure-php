@@ -16,5 +16,4 @@ enum BlobInclude: string
     case DELETED = 'deleted';
     case TAGS = 'tags';
     case VERSIONS = 'versions';
-    case DELETED_WITH_VERSIONS = 'deletedwithversions';
 }
