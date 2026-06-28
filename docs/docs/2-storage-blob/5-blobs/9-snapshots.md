@@ -3,7 +3,7 @@ sidebar_position: 9
 title: Blob snapshots
 ---
 
-Snapshots preserve a blob's state at a specific point in time. They are created explicitly by an application, unlike [blob versions](./10-versioning), which Azure creates automatically when versioning is enabled.
+Snapshots preserve a blob's state at a specific point in time. They are created explicitly by an application, unlike [blob versions](./versioning), which Azure creates automatically when versioning is enabled.
 
 ## Create A Snapshot
 

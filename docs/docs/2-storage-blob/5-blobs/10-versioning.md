@@ -3,7 +3,7 @@ sidebar_position: 10
 title: Blob versioning
 ---
 
-Blob versioning automatically preserves earlier blob states after versioning is enabled for the storage account. Unlike [blob snapshots](./9-snapshots), versions are created by Azure when supported write operations create or modify a blob.
+Blob versioning automatically preserves earlier blob states after versioning is enabled for the storage account. Unlike [blob snapshots](./snapshots), versions are created by Azure when supported write operations create or modify a blob.
 
 ## List And Read Blob Versions
 
