@@ -1,282 +1,417 @@
-# Plan: Add Azure Files SAS URL Generation Package
+# Plan: Add Azure Files Service SAS Support Following the Blob Package Pattern
 
 ## Goal
 
-Add a new Azure Files package to this monorepo that supports service SAS URL generation for shares, directories, and files, following the shape of the .NET SDK closely, with no Laravel or Flysystem wrappers in this phase.
+Add Azure Files service SAS generation to `src/Storage/File/Share` using the same implementation style already used by the Blob package:
+
+- shared-key-only signing
+- a single mutable SAS builder with fluent setters
+- small permission value objects that serialize to ordered permission strings
+- `canGenerateSasUri()` and `generateSasUri()` on resource clients
+- focused unit tests around builder output and permission ordering
+
+This plan is intentionally shaped around the existing Blob implementation in this repository, not around a fresh .NET-style redesign.
 
 ## Scope
 
 Included:
-- New package for Azure Files clients
+- Minimal Azure Files client hierarchy required to address shares, directories, and files
 - `ShareClient::canGenerateSasUri()`
-- `ShareClient::generateSasUri(...)`
+- `ShareClient::generateSasUri(ShareSasBuilder $builder)`
 - `ShareDirectoryClient::canGenerateSasUri()`
-- `ShareDirectoryClient::generateSasUri(...)`
+- `ShareDirectoryClient::generateSasUri(ShareSasBuilder $builder)`
 - `ShareFileClient::canGenerateSasUri()`
-- `ShareFileClient::generateSasUri(...)`
-- File-share SAS builder and permission types
-- Unit and feature tests for SAS URI generation
-- Package README and subtree metadata
+- `ShareFileClient::generateSasUri(ShareSasBuilder $builder)`
+- `ShareSasBuilder`
+- File Share SAS permission value objects
+- Unit tests modeled on Blob SAS tests
+- Feature tests for generated SAS URIs
 
 Excluded:
-- Laravel wrappers
-- Flysystem adapter
+- Convenience overloads that bypass the builder
 - User delegation SAS
-- Full Azure Files CRUD surface beyond what is needed to create share, directory, and file clients and generate SAS URIs
+- Account SAS changes
+- Laravel wrappers
+- Flysystem integration
+- General Azure Files CRUD beyond what is needed to construct clients and validate SAS generation
+
+## First Principle
+
+Do not invent a second SAS design.
+
+Azure Files should follow the conventions already established by:
+
+- `src/Storage/Blob/Sas/BlobSasBuilder.php`
+- `src/Storage/Blob/Sas/BlobSasPermissions.php`
+- `src/Storage/Blob/Sas/BlobContainerSasPermissions.php`
+- `src/Storage/Blob/BlobContainerClient.php`
+- `src/Storage/Blob/BlobClient.php`
+- `tests/Storage/Blob/Unit/BlobSasBuilderTest.php`
+
+Where Azure Files needs different signed resources or string-to-sign fields, keep those differences inside the Azure Files SAS builder. The external shape should still feel like the Blob package.
 
 ## Package Shape
 
-Create a new package:
-- `src/FileShare`
-- Composer package name: `azure-oss/storage-file-share`
-- Namespace: `AzureOss\Storage\FileShare\`
+The package already exists at:
+
+- `src/Storage/File/Share`
+
+Namespace:
+
+- `AzureOss\Storage\File\Share`
 
 Planned entry points:
+
 - `ShareServiceClient`
 - `ShareClient`
 - `ShareDirectoryClient`
 - `ShareFileClient`
 
-## API Target
+This mirrors the naming style of `.NET`, but the PHP surface should still behave like the existing Blob clients in this repository.
 
-Mirror the .NET intent from Microsoft Learn:
-- `ShareClient.GenerateSasUri(...)`
-- `ShareFileClient.GenerateSasUri(...)`
-- `CanGenerateSasUri`
-- `ShareDirectoryClient.GenerateSasUri(...)`
+## API Shape
 
-PHP target shape:
+Follow the Blob pattern directly.
+
+### Client methods
+
+Each resource client should expose:
 
 ```php
-<?php
+public function canGenerateSasUri(): bool
 
-use AzureOss\Storage\FileShare\ShareServiceClient;
-use AzureOss\Storage\FileShare\Sas\ShareDirectorySasPermissions;
-use AzureOss\Storage\FileShare\Sas\ShareFileSasPermissions;
-use AzureOss\Storage\FileShare\Sas\ShareSasBuilder;
-
-$service = ShareServiceClient::fromConnectionString($connectionString);
-
-$share = $service->getShareClient('documents');
-$directory = $share->getDirectoryClient('contracts/2026');
-$file = $directory->getFileClient('master-services-agreement.pdf');
-
-if ($file->canGenerateSasUri()) {
-    $url = $file->generateSasUri(
-        ShareSasBuilder::new()
-            ->setExpiresOn(new DateTimeImmutable('+15 minutes'))
-            ->setPermissions(ShareFileSasPermissions::read())
-    );
-}
-
-if ($directory->canGenerateSasUri()) {
-    $url = $directory->generateSasUri(
-        ShareSasBuilder::new()
-            ->setExpiresOn(new DateTimeImmutable('+15 minutes'))
-            ->setPermissions(ShareDirectorySasPermissions::read()->list())
-    );
-}
+public function generateSasUri(ShareSasBuilder $shareSasBuilder): UriInterface
 ```
 
-Optional convenience overloads, if we want to match .NET more closely:
-- `ShareClient::generateSasUriFromPermissions(ShareSasPermissions|string $permissions, \DateTimeInterface $expiresOn): UriInterface`
-- `ShareDirectoryClient::generateSasUriFromPermissions(ShareDirectorySasPermissions|string $permissions, \DateTimeInterface $expiresOn): UriInterface`
-- `ShareFileClient::generateSasUriFromPermissions(ShareFileSasPermissions|string $permissions, \DateTimeInterface $expiresOn): UriInterface`
+Do not add `generateSasUriFromPermissions(...)` overloads in the first implementation. The Blob package does not use that style, and introducing it here would create a second SAS API shape to support.
 
-I would treat these as optional in v1 if the builder-based API lands first.
+### Builder style
 
-## Client Method Pattern
+Follow `BlobSasBuilder`:
 
-Follow the existing Blob package closely for the SAS methods on resource clients:
-- `canGenerateSasUri()` returns `true` only when the client has a `StorageSharedKeyCredential`
-- `generateSasUri(...)` throws when the credential cannot sign
-- `generateSasUri(...)` stamps client-specific context onto the builder before calling `build(...)`
-- development endpoints may relax the protocol to `https,http`, matching the Blob behavior
+- `ShareSasBuilder::new()`
+- fluent `set...()` methods
+- mutable builder
+- `build(StorageSharedKeyCredential $credential): string`
+- returns the SAS query string without a leading `?`
 
-This mirrors the current patterns in:
-- [src/Blob/BlobContainerClient.php](/Users/brecht.vermeersch/PhpstormProjects/oss/azure-storage-monorepo/src/Blob/BlobContainerClient.php:314)
-- [src/Blob/BlobClient.php](/Users/brecht.vermeersch/PhpstormProjects/oss/azure-storage-monorepo/src/Blob/BlobClient.php:513)
+### Permission style
 
-Planned mapping:
-- `ShareClient::generateSasUri()` stamps `shareName`
-- `ShareDirectoryClient::generateSasUri()` stamps `shareName` and `directoryPath`
-- `ShareFileClient::generateSasUri()` stamps `shareName`, `directoryPath` when present, and `filePath`
+Follow `BlobSasPermissions` and `BlobContainerSasPermissions`:
 
-## Reuse From `Common`
+- permission classes are final value objects
+- constructor booleans define granted operations
+- `__toString()` emits the permissions in Azure's required order
+- no parsing layer is needed in v1
 
-Reuse directly:
-- [StorageSharedKeyCredential](/Users/brecht.vermeersch/PhpstormProjects/oss/azure-storage-monorepo/src/Common/Auth/StorageSharedKeyCredential.php:1)
-- [ClientFactory](/Users/brecht.vermeersch/PhpstormProjects/oss/azure-storage-monorepo/src/Common/Middleware/ClientFactory.php:1)
-- [SasProtocol](/Users/brecht.vermeersch/PhpstormProjects/oss/azure-storage-monorepo/src/Common/Sas/SasProtocol.php:1)
-- [SasIpRange](/Users/brecht.vermeersch/PhpstormProjects/oss/azure-storage-monorepo/src/Common/Sas/SasIpRange.php:1)
-- [ApiVersion](/Users/brecht.vermeersch/PhpstormProjects/oss/azure-storage-monorepo/src/Common/ApiVersion.php:1)
-- Connection-string parsing helpers already used by Blob and Queue
+## Proposed Files
 
-Likely add a small shared abstraction in `Common` only if duplication becomes obvious:
-- SAS response-header fields
-- shared builder validation helpers
-
-Keep service-specific signing logic separate. Azure Files should have its own canonicalized resource and string-to-sign implementation.
-
-## New Files / Types
-
-Suggested initial set:
-
-`src/FileShare`
-- `composer.json`
-- `README.md`
+`src/Storage/File/Share`
 - `ShareServiceClient.php`
 - `ShareClient.php`
 - `ShareDirectoryClient.php`
 - `ShareFileClient.php`
 
-`src/FileShare/Sas`
+`src/Storage/File/Share/Sas`
 - `ShareSasBuilder.php`
 - `ShareSasPermissions.php`
 - `ShareDirectorySasPermissions.php`
 - `ShareFileSasPermissions.php`
 
-`src/FileShare/Helpers`
+`src/Storage/File/Share/Helpers`
 - `ShareUriParserHelper.php`
 
-`src/FileShare/Exceptions`
+`src/Storage/File/Share/Exceptions`
 - `InvalidConnectionStringException.php`
 - `InvalidShareUriException.php`
 - `UnableToGenerateSasException.php`
-- `FileShareStorageExceptionDeserializer.php`
 
-`src/FileShare/Models`
+`src/Storage/File/Share/Models`
 - `ShareServiceClientOptions.php`
 - `ShareClientOptions.php`
 - `ShareDirectoryClientOptions.php`
 - `ShareFileClientOptions.php`
 
-`tests/FileShare`
-- unit tests for permissions, URI parsing, SAS builder
-- feature tests for share, directory, and file SAS URL generation
+`tests/Storage/File/Share/Unit`
+- `ShareSasBuilderTest.php`
+- permission tests matching the Blob pattern
+
+`tests/Storage/File/Share/Feature`
+- SAS URI generation tests
+
+## Client Method Pattern
+
+Match the Blob clients closely.
+
+### `canGenerateSasUri()`
+
+Return `true` only when the client credential is a `StorageSharedKeyCredential`.
+
+### `generateSasUri()`
+
+Behavior should match the Blob package:
+
+1. Throw `UnableToGenerateSasException` if the client cannot sign.
+2. If the client URI is a development URI, relax the protocol to `https,http`, following the Blob behavior.
+3. Stamp client-specific context onto the builder.
+4. Call `build(...)` on the builder.
+5. Merge the generated SAS query parameters with any existing query parameters from the client URI.
+
+Planned context stamping:
+
+- `ShareClient` sets `shareName`
+- `ShareDirectoryClient` sets `shareName` and `directoryPath`
+- `ShareFileClient` sets `shareName`, `filePath`, and parent directory context as needed
+
+This keeps the builder responsible for signing and the clients responsible for resource context, exactly like Blob.
+
+## Builder Design
+
+`ShareSasBuilder` should look structurally similar to `BlobSasBuilder`.
+
+### Required state
+
+- `shareName`
+- `expiresOn`
+
+### Optional state
+
+- `path` or separate `directoryPath` / `filePath`
+- `startsOn`
+- `permissions`
+- `identifier`
+- `cacheControl`
+- `contentDisposition`
+- `contentEncoding`
+- `contentLanguage`
+- `contentType`
+- `ipRange`
+- `protocol`
+- `version`
+- `directoryDepth`
+
+### Builder setters
+
+The naming should mirror Blob unless Azure Files has a strong reason not to:
+
+- `setShareName(string $value)`
+- `setPath(string $value)` or resource-specific setters if needed
+- `setExpiresOn(\DateTimeInterface $value)`
+- `setPermissions(string|ShareSasPermissions|ShareDirectorySasPermissions|ShareFileSasPermissions $value)`
+- `setIdentifier(string $value)`
+- `setStartsOn(\DateTimeInterface $value)`
+- `setCacheControl(string $value)`
+- `setContentDisposition(string $value)`
+- `setContentEncoding(string $value)`
+- `setContentLanguage(string $value)`
+- `setContentType(string $value)`
+- `setIPRange(SasIpRange $value)`
+- `setProtocol(SasProtocol $value)`
+- `setVersion(string $value)`
+- `setDirectoryDepth(int $value)` if directory-scoped SAS requires it
+
+### Resource selection
+
+Like `BlobSasBuilder`, the builder should derive the signed resource from the stamped context rather than forcing callers to set raw `sr` values.
+
+Planned mapping:
+
+- share SAS => `sr=s`
+- directory SAS => `sr=d`
+- file SAS => `sr=f`
+
+## String-To-Sign
+
+Azure Files needs its own implementation, but the Blob builder is still the template:
+
+- normalize values up front
+- build the canonicalized resource in one helper
+- assemble the string-to-sign as an ordered list
+- `urldecode()` each value before joining with `\n`
+- sign through `StorageSharedKeyCredential::computeHMACSHA256(...)`
+- emit query parameters through `GuzzleHttp\Psr7\Query::build(...)`
+
+Keep the Azure Files differences local to:
+
+- canonicalized resource format
+- signed resource value
+- any Azure Files-specific fields such as directory depth
+
+Do not create a cross-service SAS abstraction unless duplication becomes materially painful.
+
+## Canonicalized Resource
+
+Follow the Blob builder pattern of computing this internally from the account name and stamped client state.
+
+Planned form:
+
+- share: `/file/{account}/{share}`
+- directory: `/file/{account}/{share}/{directoryPath}`
+- file: `/file/{account}/{share}/{filePath}`
+
+If Azure Files requires different canonicalization for directories versus files, keep that distinction inside the builder.
+
+## Development URI Handling
+
+Copy the Blob behavior unless Azure Files proves it needs a different rule.
+
+That means:
+
+- use the existing `StorageUriParserHelper::isDevelopmentUri(...)` if it applies cleanly
+- otherwise introduce the smallest possible helper addition needed for Azure Files endpoints
+- when the URI is a development URI, set `SasProtocol::HTTPS_AND_HTTP` before signing
+
+This should be driven by the same reasoning as Blob, not by a Files-specific redesign.
+
+## Permission Types
+
+Model the permission classes directly on the Blob permission objects.
+
+### `ShareSasPermissions`
+
+Represents share-scoped permissions and serializes them in Azure's required order.
+
+### `ShareDirectorySasPermissions`
+
+Represents directory-scoped permissions and serializes them in Azure's required order.
+
+### `ShareFileSasPermissions`
+
+Represents file-scoped permissions and serializes them in Azure's required order.
+
+Implementation guidance:
+
+- use promoted boolean properties
+- keep the constructor flat
+- implement only `__toString()`
+- do not add fluent permission toggles in v1
+
+If two scopes have identical permission sets, still prefer separate types if that matches the Blob package's clarity around scope.
+
+## Minimal Client Hierarchy
+
+Only build enough Azure Files client surface to support SAS generation and tests.
+
+### `ShareServiceClient`
+
+Should provide:
+
+- `fromConnectionString(...)`
+- `getShareClient(string $shareName): ShareClient`
+
+### `ShareClient`
+
+Should hold:
+
+- endpoint URI
+- share name
+- credential
+- HTTP client/options following Blob and Queue patterns
+
+Should provide:
+
+- `getDirectoryClient(string $directoryPath): ShareDirectoryClient`
+- `getFileClient(string $filePath): ShareFileClient`
+- `canGenerateSasUri()`
+- `generateSasUri(...)`
+
+### `ShareDirectoryClient`
+
+Should provide:
+
+- `getDirectoryClient(string $directoryPath): ShareDirectoryClient`
+- `getFileClient(string $fileName): ShareFileClient`
+- `canGenerateSasUri()`
+- `generateSasUri(...)`
+
+### `ShareFileClient`
+
+Should provide:
+
+- `canGenerateSasUri()`
+- `generateSasUri(...)`
+
+This is enough to follow the Blob navigation pattern and sign resource-specific SAS URIs.
+
+## Tests
+
+Mirror the Blob testing strategy.
+
+### Unit tests
+
+Add focused tests around:
+
+- permission ordering and serialization
+- signed resource selection (`s`, `d`, `f`)
+- canonicalized resource construction
+- inclusion of optional fields such as IP range
+- response-header override query parameters
+- directory depth behavior for `sr=d`
+- failure when neither identifier nor permissions are set, if Azure Files follows the same rule as Blob
+- failure when the client credential cannot sign
+
+The unit tests should be small and builder-centric, similar to `BlobSasBuilderTest`.
+
+### Feature tests
+
+Add feature tests around:
+
+- `canGenerateSasUri()` on share, directory, and file clients
+- `generateSasUri()` stamping the right resource context
+- generated URIs containing the expected `sr`
+- a signed SAS URI working against real Azure Files operations where the current test environment supports it
+
+Keep feature coverage narrow. Blob already proves that most SAS correctness belongs in unit tests.
+
+## Docs
+
+Documentation should match the Blob package style:
+
+- docs examples using `ShareSasBuilder::new()`
+- clear note that SAS generation requires a shared-key credential
+- no convenience-overload examples unless those methods actually exist
+- no wrapper/framework guidance in this phase
 
 ## Implementation Phases
 
-## Phase 1: Package Scaffolding
+### Phase 1: Minimal package wiring
 
-- Add `src/FileShare/composer.json`
-- Register PSR-4 namespace through the monorepo root autoload
-- Add package README
-- Make sure `.github/sync-package.php` will pick it up consistently with the other publishable packages
+- Keep `src/Storage/File/Share/composer.json` aligned with the other Storage packages
+- Add the Azure Files source directories and namespace layout
+- Add a package README section for SAS generation scope
 
-## Phase 2: Minimal Client Hierarchy
+### Phase 2: Minimal client surface
 
 - Add `ShareServiceClient`
 - Add `ShareClient`
 - Add `ShareDirectoryClient`
 - Add `ShareFileClient`
-- Support construction from connection string and direct endpoint + credential
-- Match repo patterns from Blob and Queue for client options and Guzzle setup
-- Add URI parsing helper for Azure Files endpoints, including Azurite or dev-style handling if applicable
+- Reuse the existing Storage client construction patterns from Blob and Queue
 
-Navigation methods:
-- `ShareServiceClient::getShareClient(string $shareName): ShareClient`
-- `ShareClient::getDirectoryClient(string $directoryPath): ShareDirectoryClient`
-- `ShareClient::getFileClient(string $filePath): ShareFileClient`
-- `ShareDirectoryClient::getDirectoryClient(string $directoryPath): ShareDirectoryClient`
-- `ShareDirectoryClient::getFileClient(string $fileName): ShareFileClient`
-
-This keeps the navigation style close to .NET and close to the Blob package’s `getContainerClient()` and `getBlobClient()` pattern.
-
-## Phase 3: SAS Model Layer
+### Phase 3: SAS types
 
 - Add `ShareSasBuilder`
-- Add `ShareSasPermissions` for share-level SAS
-- Add `ShareDirectorySasPermissions` for directory-level SAS
-- Add `ShareFileSasPermissions` for file-level SAS
-- Support:
-  - expiry
-  - optional start time
-  - permissions
-  - identifier
-  - protocol
-  - IP range
-  - response header overrides: `rscc`, `rscd`, `rsce`, `rscl`, `rsct`
-  - explicit service version override
-  - directory depth parameter `sdd` when directory-scoped SAS is used
+- Add the three permission value objects
+- Add `UnableToGenerateSasException`
 
-Builder should determine resource type from populated client context rather than making callers manually set raw `sr` values where possible.
+### Phase 4: SAS signing
 
-## Phase 4: SAS Signing
+- Implement Azure Files canonicalized resource construction
+- Implement Azure Files string-to-sign logic
+- Implement `canGenerateSasUri()` and `generateSasUri()` on the resource clients
 
-- Implement Azure Files service SAS string-to-sign logic in `ShareSasBuilder`
-- Canonicalized resource should use `/file/{account}/{share}` and `/file/{account}/{share}/{path}` semantics
-- `ShareClient::generateSasUri()` should stamp share name into the builder
-- `ShareDirectoryClient::generateSasUri()` should stamp share name, directory path, and directory depth
-- `ShareFileClient::generateSasUri()` should stamp share name and file path
-- `canGenerateSasUri()` should return true only for `StorageSharedKeyCredential`, matching Blob behavior
-- For dev storage handling, mirror the Blob pattern if Azure Files local development endpoint semantics require protocol relaxation
+### Phase 5: Tests
 
-Resource mapping:
-- share SAS uses `sr=s`
-- directory SAS uses `sr=d`
-- file SAS uses `sr=f`
+- Add builder and permission unit tests first
+- Add narrow feature tests second
 
-Directory SAS notes from Azure Storage REST:
-- directory scope requires `sv >= 2020-02-10`
-- directory scope requires `sdd`
+### Phase 6: Docs
 
-## Phase 5: Tests
+- Add README examples and changelog entry
 
-Unit tests:
-- permission ordering and serialization
-- canonicalized resource construction
-- expected query params in generated SAS
-- response-header override query params
-- directory-scoped `sr=d` and `sdd` behavior
-- failure when credential cannot sign
-- failure when required SAS fields are missing
+## Decisions To Lock Before Coding
 
-Feature tests:
-- generate SAS URI for a share
-- generate SAS URI for a directory
-- generate SAS URI for a file
-- verify signed resource is `s` for share, `d` for directory, and `f` for file
-- verify a generated file SAS URL can read the target file when using shared key credentials
-- verify directory SAS works against a file or listing operation inside the scoped directory if the emulator or test environment supports it
-- verify non-shared-key clients report `canGenerateSasUri() === false`
-
-## Phase 6: Docs
-
-- Add README examples for:
-  - share SAS
-  - directory SAS
-  - file SAS
-  - shared-key requirement
-- Document explicitly that this phase only supports service SAS generation
-- Note that Laravel and Flysystem integration is intentionally out of scope
-
-## Design Decisions To Lock Before Coding
-
-1. Package name: `azure-oss/storage-file-share` is the cleanest fit.
-2. Client naming: use `ShareServiceClient`, `ShareClient`, `ShareDirectoryClient`, and `ShareFileClient` to align with .NET.
-3. First release surface: builder-based `generateSasUri()` is required; permission+expiry convenience overloads are optional.
-4. Directory client: include it in the first implementation, not as a follow-up.
-5. Aliases: probably unnecessary in v1 unless you already want backwards-compatibility placeholders.
-
-## Risks / Gotchas
-
-- Azure Files SAS signing is close to Blob SAS, but not identical; we should not generalize too early.
-- Directory SAS has extra rules such as `sr=d` and `sdd`, so the builder should model that explicitly.
-- User delegation SAS appears in the .NET surface, but it should stay out of this first implementation to avoid mixing scopes.
-- Azurite or local Azure Files support may differ from Blob and should be validated separately before assuming the same dev-path behavior.
-
-## Suggested Delivery Order
-
-1. Scaffold `src/FileShare`
-2. Implement minimal clients and URI parsing
-3. Implement share, directory, and file SAS builder and permissions
-4. Add `canGenerateSasUri()` and `generateSasUri()`
-5. Add tests
-6. Add docs
-
-## Reference Docs
-
-- [ShareFileClient (.NET)](https://learn.microsoft.com/en-us/dotnet/api/azure.storage.files.shares.sharefileclient?view=azure-dotnet)
-- [ShareClient (.NET)](https://learn.microsoft.com/en-us/dotnet/api/azure.storage.files.shares.shareclient?view=azure-dotnet)
-- [Create a service SAS (REST)](https://learn.microsoft.com/en-us/rest/api/storageservices/create-service-sas)
+1. Keep the Blob-style builder API as the only SAS API in v1.
+2. Keep Azure Files SAS logic in `src/Storage/File/Share/Sas` rather than pushing abstractions into `Common`.
+3. Add only the minimal client hierarchy required to stamp resource context and generate SAS URIs.
+4. Mirror Blob tests and naming closely unless Azure Files semantics require a concrete difference.
