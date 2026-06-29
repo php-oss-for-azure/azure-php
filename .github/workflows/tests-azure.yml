@@ -95,6 +95,31 @@ jobs:
       - name: Download dependencies
         run: composer install --no-interaction --no-progress --optimize-autoloader
 
+      - name: Generate workload identity token file
+        run: |
+          TOKEN_FILE="$(mktemp)"
+          REQUEST_URL="${ACTIONS_ID_TOKEN_REQUEST_URL}"
+
+          case "${REQUEST_URL}" in
+            *\?*) REQUEST_URL="${REQUEST_URL}&audience=api://AzureADTokenExchange" ;;
+            *) REQUEST_URL="${REQUEST_URL}?audience=api://AzureADTokenExchange" ;;
+          esac
+
+          RESPONSE="$(curl --silent --show-error --fail \
+            --header "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            --header "Accept: application/json" \
+            "${REQUEST_URL}")"
+
+          TOKEN_VALUE="$(printf '%s' "${RESPONSE}" | jq -r '.value')"
+
+          if [ -z "${TOKEN_VALUE}" ] || [ "${TOKEN_VALUE}" = "null" ]; then
+            echo "GitHub Actions OIDC response did not contain a token" >&2
+            exit 1
+          fi
+
+          printf '%s' "${TOKEN_VALUE}" > "${TOKEN_FILE}"
+          echo "AZURE_FEDERATED_TOKEN_FILE=${TOKEN_FILE}" >> "${GITHUB_ENV}"
+
       - name: Run tests
         env:
           AZURE_TENANT_ID: ${{ secrets.AZURE_IDENTITY_TENANT_ID }}
