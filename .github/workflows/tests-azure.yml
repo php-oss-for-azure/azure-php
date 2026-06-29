@@ -37,9 +37,9 @@ jobs:
       - name: Azure Login
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.AZURE_INFRA_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_INFRA_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_INFRA_SUBSCRIPTION_ID }}
 
       - name: Deploy Azure Infrastructure
         id: deploy
@@ -96,6 +96,10 @@ jobs:
         run: composer install --no-interaction --no-progress --optimize-autoloader
 
       - name: Run tests
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_IDENTITY_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_IDENTITY_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_IDENTITY_CLIENT_SECRET }}
         run: ./vendor/bin/phpunit
 
       - name: Unmount Azure File Share
