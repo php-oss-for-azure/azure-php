@@ -19,14 +19,6 @@ title: Installation
 composer require azure-oss/storage-file-share
 ```
 
-## Intended usage
-
-This package is not intended for normal mounted-share file I/O.
-
-For ordinary file and directory operations, mount Azure Files over SMB or NFS and use standard filesystem APIs from PHP or your framework.
-
-The SDK is intended for Azure Files capabilities that are outside that mounted-share workflow.
-
 ## Next Step
 
-Continue to [Mounted Share Boundary](./working-with-mounted-shares) for the package scope and the current repository test model.
+Continue to [Overview](./core), then [Generating SAS URLs](./generating-sas-urls).
