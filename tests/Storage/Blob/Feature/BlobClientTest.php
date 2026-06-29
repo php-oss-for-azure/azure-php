@@ -762,10 +762,7 @@ final class BlobClientTest extends TestCase
     #[Test]
     public function abort_copy_from_url_works(): void
     {
-        // found no reliable way to test this, because the copy operation is too fast
-        // this depends on the blob server load
-
-        self::markTestSkipped();
+        self::markTestSkipped('Found no reliable way to test this, because the copy operation is too fast and this depends on the blob server load');
     }
 
     #[Test]
