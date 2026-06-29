@@ -137,7 +137,7 @@ jobs:
         run: cat code-coverage-results.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload HTML coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-html-php${{ matrix.php-version }}
           path: coverage-html
