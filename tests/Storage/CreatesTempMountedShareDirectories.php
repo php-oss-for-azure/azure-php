@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace AzureOss\Tests\Storage;
 
+use AzureOss\Tests\RequiresEnvironmentVariables;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\TestCase;
 
 /** @mixin TestCase */
 trait CreatesTempMountedShareDirectories
 {
+    use RequiresEnvironmentVariables;
+
     /** @var list<string> */
     private array $tempMountedShareDirectories = [];
 
@@ -18,11 +21,7 @@ trait CreatesTempMountedShareDirectories
      */
     protected function tempMountedShareDirectory(string $prefix = 'test-'): array
     {
-        $mountPath = getenv('AZURE_STORAGE_FILE_SHARE_PATH');
-
-        if ($mountPath === false || $mountPath === '') {
-            self::markTestSkipped('Missing environment variable: AZURE_STORAGE_FILE_SHARE_PATH');
-        }
+        $mountPath = self::getRequiredEnvironmentVariable('AZURE_STORAGE_FILE_SHARE_PATH');
 
         $relativePath = $prefix.bin2hex(random_bytes(12));
         $absolutePath = rtrim($mountPath, '/').'/'.$relativePath;
@@ -61,6 +60,10 @@ trait CreatesTempMountedShareDirectories
         );
 
         foreach ($iterator as $item) {
+            if (! $item instanceof \SplFileInfo) {
+                continue;
+            }
+
             try {
                 if ($item->isDir()) {
                     @rmdir($item->getPathname());

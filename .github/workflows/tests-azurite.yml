@@ -48,4 +48,4 @@ jobs:
         run: composer install --no-interaction --no-progress --optimize-autoloader
 
       - name: Run tests
-        run: ./vendor/bin/phpunit
+        run: ./vendor/bin/paratest --processes=4 --display-skipped --display-warnings

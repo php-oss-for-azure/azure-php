@@ -11,6 +11,7 @@ use AzureOss\Storage\File\Share\Sas\ShareSasBuilder;
 use AzureOss\Storage\File\Share\Sas\ShareSasPermissions;
 use AzureOss\Storage\File\Share\ShareClient;
 use AzureOss\Storage\File\Share\ShareFileClient;
+use AzureOss\Tests\RequiresEnvironmentVariables;
 use AzureOss\Tests\Storage\CreatesTempMountedShareDirectories;
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Uri;
@@ -19,22 +20,14 @@ use PHPUnit\Framework\TestCase;
 
 final class ShareSasAuthorizationTest extends TestCase
 {
-    use CreatesTempMountedShareDirectories;
+    use CreatesTempMountedShareDirectories, RequiresEnvironmentVariables;
 
     #[Test]
     public function file_sas_can_read_the_file_contents_from_azure_files(): void
     {
-        $shareName = getenv('AZURE_STORAGE_FILE_SHARE_NAME');
-        $accountName = getenv('AZURE_STORAGE_FILE_SHARE_ACCOUNT_NAME');
-        $accountKey = getenv('AZURE_STORAGE_FILE_SHARE_ACCOUNT_KEY');
-
-        if (
-            $shareName === false || $shareName === ''
-            || $accountName === false || $accountName === ''
-            || $accountKey === false || $accountKey === ''
-        ) {
-            self::markTestSkipped('Azure Files live-test environment variables are not configured.');
-        }
+        $shareName = self::getRequiredEnvironmentVariable('AZURE_STORAGE_FILE_SHARE_NAME');
+        $accountName = self::getRequiredEnvironmentVariable('AZURE_STORAGE_FILE_SHARE_ACCOUNT_NAME');
+        $accountKey = self::getRequiredEnvironmentVariable('AZURE_STORAGE_FILE_SHARE_ACCOUNT_KEY');
 
         $directory = $this->tempMountedShareDirectory('sas-');
         $relativePath = $directory['relativePath'].'/hello.txt';
@@ -66,17 +59,9 @@ final class ShareSasAuthorizationTest extends TestCase
     #[Test]
     public function share_sas_can_read_a_file_within_the_share_from_azure_files(): void
     {
-        $shareName = getenv('AZURE_STORAGE_FILE_SHARE_NAME');
-        $accountName = getenv('AZURE_STORAGE_FILE_SHARE_ACCOUNT_NAME');
-        $accountKey = getenv('AZURE_STORAGE_FILE_SHARE_ACCOUNT_KEY');
-
-        if (
-            $shareName === false || $shareName === ''
-            || $accountName === false || $accountName === ''
-            || $accountKey === false || $accountKey === ''
-        ) {
-            self::markTestSkipped('Azure Files live-test environment variables are not configured.');
-        }
+        $shareName = self::getRequiredEnvironmentVariable('AZURE_STORAGE_FILE_SHARE_NAME');
+        $accountName = self::getRequiredEnvironmentVariable('AZURE_STORAGE_FILE_SHARE_ACCOUNT_NAME');
+        $accountKey = self::getRequiredEnvironmentVariable('AZURE_STORAGE_FILE_SHARE_ACCOUNT_KEY');
 
         $directory = $this->tempMountedShareDirectory('sas-share-');
         $relativePath = $directory['relativePath'].'/hello.txt';

@@ -7,22 +7,21 @@ namespace AzureOss\Tests\Storage\Common\Feature;
 use AzureOss\Identity\ClientSecretCredential;
 use AzureOss\Identity\TokenRequestContext;
 use AzureOss\Storage\Common\Middleware\ClientFactory;
+use AzureOss\Tests\RequiresEnvironmentVariables;
 use GuzzleHttp\RequestOptions;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 class ClientSecretCredentialTest extends TestCase
 {
+    use RequiresEnvironmentVariables;
+
     #[Test]
     public function get_token_works(): void
     {
-        $tenantId = getenv('AZURE_STORAGE_BLOB_TENANT_ID');
-        $clientId = getenv('AZURE_STORAGE_BLOB_CLIENT_ID');
-        $clientSecret = getenv('AZURE_STORAGE_BLOB_CLIENT_SECRET');
-
-        if ($tenantId === false || $clientId === false || $clientSecret === false) {
-            self::markTestSkipped('Not all env variables have been set for this test');
-        }
+        $tenantId = self::getRequiredEnvironmentVariable('AZURE_STORAGE_BLOB_TENANT_ID');
+        $clientId = self::getRequiredEnvironmentVariable('AZURE_STORAGE_BLOB_CLIENT_ID');
+        $clientSecret = self::getRequiredEnvironmentVariable('AZURE_STORAGE_BLOB_CLIENT_SECRET');
 
         $credential = new ClientSecretCredential($tenantId, $clientId, $clientSecret);
 
@@ -35,14 +34,10 @@ class ClientSecretCredentialTest extends TestCase
     #[Test]
     public function making_request_works(): void
     {
-        $endpoint = getenv('AZURE_STORAGE_BLOB_ENDPOINT');
-        $tenantId = getenv('AZURE_STORAGE_BLOB_TENANT_ID');
-        $clientId = getenv('AZURE_STORAGE_BLOB_CLIENT_ID');
-        $clientSecret = getenv('AZURE_STORAGE_BLOB_CLIENT_SECRET');
-
-        if ($endpoint === false || $tenantId === false || $clientId === false || $clientSecret === false) {
-            self::markTestSkipped('Not all env variables have been set for this test');
-        }
+        $endpoint = self::getRequiredEnvironmentVariable('AZURE_STORAGE_BLOB_ENDPOINT');
+        $tenantId = self::getRequiredEnvironmentVariable('AZURE_STORAGE_BLOB_TENANT_ID');
+        $clientId = self::getRequiredEnvironmentVariable('AZURE_STORAGE_BLOB_CLIENT_ID');
+        $clientSecret = self::getRequiredEnvironmentVariable('AZURE_STORAGE_BLOB_CLIENT_SECRET');
 
         $client = (new ClientFactory)->create(
             credential: new ClientSecretCredential($tenantId, $clientId, $clientSecret),

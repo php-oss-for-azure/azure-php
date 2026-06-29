@@ -128,26 +128,23 @@ final class BlobServiceClientTest extends TestCase
     }
 
     #[Test]
-    public function get_containers_works(): void
-    {
-        $service = $this->service();
-        $before = iterator_to_array($service->getBlobContainers());
-
-        $this->tempContainer();
-
-        $after = iterator_to_array($service->getBlobContainers());
-
-        self::assertCount(count($before) + 1, $after);
-    }
-
-    #[Test]
     public function get_containers_works_with_prefix(): void
     {
-        $this->tempContainer('test-prefixed-');
+        $prefix = 'test-prefixed-'.bin2hex(random_bytes(8)).'-';
+        $first = $this->tempContainer($prefix);
+        $second = $this->tempContainer($prefix);
+        $this->tempContainer('test-unrelated-');
 
-        $after = iterator_to_array($this->service()->getBlobContainers('test-prefixed-'));
+        $after = iterator_to_array($this->service()->getBlobContainers($prefix));
 
-        self::assertCount(1, $after);
+        self::assertCount(2, $after);
+        self::assertEqualsCanonicalizing(
+            [$first->containerName, $second->containerName],
+            array_map(
+                static fn (BlobContainer $item): string => $item->name,
+                $after,
+            ),
+        );
     }
 
     #[Test]

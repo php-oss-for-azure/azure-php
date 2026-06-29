@@ -8,12 +8,15 @@ use AzureOss\Storage\Blob\BlobContainerClient;
 use AzureOss\Storage\Blob\BlobServiceClient;
 use AzureOss\Storage\Blob\Models\CreateContainerOptions;
 use AzureOss\Storage\Blob\Models\PublicAccessType;
+use AzureOss\Tests\RequiresEnvironmentVariables;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\TestCase;
 
 /** @mixin TestCase */
 trait CreatesTempContainers
 {
+    use RequiresEnvironmentVariables;
+
     /** @var list<BlobContainerClient> */
     private array $tempContainers = [];
 
@@ -94,12 +97,6 @@ trait CreatesTempContainers
         $envVar = $map[$key]
             ?? throw new \RuntimeException("No storage account configured for scenario: {$key}");
 
-        $value = getenv($envVar);
-
-        if ($value === false || $value === '') {
-            self::markTestSkipped("Missing environment variable: {$envVar}");
-        }
-
-        return $value;
+        return self::getRequiredEnvironmentVariable($envVar);
     }
 }

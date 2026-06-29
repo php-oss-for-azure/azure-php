@@ -6,6 +6,7 @@ namespace AzureOss\Tests\Storage\BlobLaravel;
 
 use AzureOss\Storage\BlobLaravel\AzureStorageBlobAdapter;
 use AzureOss\Storage\BlobLaravel\AzureStorageBlobServiceProvider;
+use AzureOss\Tests\RequiresEnvironmentVariables;
 use AzureOss\Tests\Storage\CreatesTempContainers;
 use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Http\Client\Response;
@@ -17,7 +18,7 @@ use PHPUnit\Framework\Attributes\Test;
 
 class AzureStorageBlobAdapterTest extends TestCase
 {
-    use CreatesTempContainers;
+    use CreatesTempContainers, RequiresEnvironmentVariables;
 
     protected function getPackageProviders($app): array
     {
@@ -305,28 +306,18 @@ class AzureStorageBlobAdapterTest extends TestCase
     {
         $endpoint = getenv('AZURE_STORAGE_BLOB_ENDPOINT');
         $accountName = getenv('AZURE_STORAGE_BLOB_ACCOUNT_NAME');
-        $tenantId = getenv('AZURE_STORAGE_BLOB_TENANT_ID');
-        $clientId = getenv('AZURE_STORAGE_BLOB_CLIENT_ID');
-        $clientSecret = getenv('AZURE_STORAGE_BLOB_CLIENT_SECRET');
 
         $hasEndpoint = is_string($endpoint) && $endpoint !== '';
         $hasAccountName = is_string($accountName) && $accountName !== '';
 
-        if (! $hasEndpoint && ! $hasAccountName) {
-            self::markTestSkipped(
-                'AZURE_STORAGE_BLOB_ENDPOINT or AZURE_STORAGE_BLOB_ACCOUNT_NAME is required.',
-            );
-        }
+        self::getFirstAvailableEnvironmentVariable([
+            'AZURE_STORAGE_BLOB_ENDPOINT',
+            'AZURE_STORAGE_BLOB_ACCOUNT_NAME',
+        ]);
 
-        if (
-            ! is_string($tenantId) ||
-            ! is_string($clientId) ||
-            ! is_string($clientSecret)
-        ) {
-            self::markTestSkipped(
-                'AZURE_STORAGE_BLOB_TENANT_ID, AZURE_STORAGE_BLOB_CLIENT_ID, AZURE_STORAGE_BLOB_CLIENT_SECRET are required.',
-            );
-        }
+        $tenantId = self::getRequiredEnvironmentVariable('AZURE_STORAGE_BLOB_TENANT_ID');
+        $clientId = self::getRequiredEnvironmentVariable('AZURE_STORAGE_BLOB_CLIENT_ID');
+        $clientSecret = self::getRequiredEnvironmentVariable('AZURE_STORAGE_BLOB_CLIENT_SECRET');
 
         $container = $this->tempContainer('laravel-');
 

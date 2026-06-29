@@ -7,6 +7,7 @@ namespace AzureOss\Tests\Storage\BlobFlysystem;
 use AzureOss\Storage\Blob\BlobContainerClient;
 use AzureOss\Storage\Blob\BlobServiceClient;
 use AzureOss\Storage\BlobFlysystem\AzureBlobStorageAdapter;
+use AzureOss\Tests\RequiresEnvironmentVariables;
 use GuzzleHttp\Psr7\Query;
 use League\Flysystem\AdapterTestUtilities\FilesystemAdapterTestCase;
 use League\Flysystem\Config;
@@ -18,6 +19,8 @@ use PHPUnit\Framework\Attributes\Test;
 
 class AzureBlobStorageTest extends FilesystemAdapterTestCase
 {
+    use RequiresEnvironmentVariables;
+
     private static string $containerName;
 
     protected function runScenario(callable $scenario): void
@@ -41,11 +44,7 @@ class AzureBlobStorageTest extends FilesystemAdapterTestCase
 
     private static function createContainerClient(): BlobContainerClient
     {
-        $connectionString = getenv('AZURE_STORAGE_CONNECTION_STRING');
-
-        if (! is_string($connectionString)) {
-            self::markTestSkipped('AZURE_STORAGE_CONNECTION_STRING is not provided.');
-        }
+        $connectionString = self::getRequiredEnvironmentVariable('AZURE_STORAGE_CONNECTION_STRING');
 
         return BlobServiceClient::fromConnectionString($connectionString)->getContainerClient(self::$containerName);
     }
