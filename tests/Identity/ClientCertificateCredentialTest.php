@@ -8,11 +8,15 @@ use AzureOss\Identity\AuthenticationFailedException;
 use AzureOss\Identity\ClientCertificateCredential;
 use AzureOss\Identity\ClientCertificateCredentialOptions;
 use AzureOss\Identity\TokenRequestContext;
+use AzureOss\Tests\LoadsFixtures;
+use AzureOss\Tests\RequiresEnvironmentVariables;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 class ClientCertificateCredentialTest extends TestCase
 {
+    use LoadsFixtures, RequiresEnvironmentVariables;
+
     private const GRAPH_SCOPE = 'https://graph.microsoft.com/.default';
 
     #[Test]
@@ -126,18 +130,9 @@ class ClientCertificateCredentialTest extends TestCase
      */
     private function azureApplicationIdentity(): array
     {
-        $tenantId = getenv('AZURE_TENANT_ID');
-        $clientId = getenv('AZURE_CLIENT_ID');
-
-        if ($tenantId === false || $clientId === false) {
-            self::markTestSkipped('AZURE_TENANT_ID and AZURE_CLIENT_ID must be set for certificate integration tests');
-        }
+        $tenantId = self::getRequiredEnvironmentVariable('AZURE_TENANT_ID');
+        $clientId = self::getRequiredEnvironmentVariable('AZURE_CLIENT_ID');
 
         return [$tenantId, $clientId];
-    }
-
-    private function fixturePath(string $file): string
-    {
-        return __DIR__.'/fixtures/'.$file;
     }
 }

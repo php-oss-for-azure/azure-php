@@ -625,15 +625,17 @@ final class BlobClient
             throw new UnableToGenerateSasException;
         }
 
+        $builder = clone $blobSasBuilder;
+
         if (StorageUriParserHelper::isDevelopmentUri($this->uri)) {
-            $blobSasBuilder->setProtocol(SasProtocol::HTTPS_AND_HTTP);
+            $builder->setProtocol(SasProtocol::HTTPS_AND_HTTP);
         }
 
         $existingQuery = Query::parse($this->uri->getQuery());
         $snapshot = $existingQuery['snapshot'] ?? null;
         $versionId = $existingQuery['versionid'] ?? null;
 
-        $sas = $blobSasBuilder
+        $sas = $builder
             ->setContainerName($this->containerName)
             ->setBlobName($this->blobName)
             ->setSnapshot(is_string($snapshot) ? $snapshot : null)

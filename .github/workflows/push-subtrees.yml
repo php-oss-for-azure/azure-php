@@ -105,7 +105,7 @@ jobs:
       - name: Cache splitsh-lite
         if: steps.release.outputs.matched == 'true'
         id: cache-splitsh
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: /usr/local/bin/splitsh-lite
           key: splitsh-lite-v1.0.1

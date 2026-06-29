@@ -66,9 +66,9 @@ final class BlobSasBuilder
     }
 
     /** Sets the blob name, or omits it to create a container SAS. */
-    public function setBlobName(string $value): BlobSasBuilder
+    public function setBlobName(?string $value): BlobSasBuilder
     {
-        $this->blobName = $value;
+        $this->blobName = $value !== '' ? $value : null;
 
         return $this;
     }
@@ -204,9 +204,7 @@ final class BlobSasBuilder
     /** Signs and returns the service SAS query string without a leading question mark. */
     public function build(StorageSharedKeyCredential $sharedKeyCredential): string
     {
-        if ($this->identifier === null && $this->permissions === null) {
-            throw new UnableToGenerateSasException;
-        }
+        $this->validateState();
 
         $signedStart = $this->startsOn !== null ? DateHelper::formatAs8601Zulu($this->startsOn) : null;
         $signedExpiry = DateHelper::formatAs8601Zulu($this->expiresOn);
@@ -262,6 +260,34 @@ final class BlobSasBuilder
             'rsct' => $this->contentType,
             'ses' => $this->encryptionScope,
         ], fn (?string $value) => $value !== null), false);
+    }
+
+    /**
+     * Ensures the builder contains the minimum state required to sign a SAS.
+     *
+     * @throws UnableToGenerateSasException
+     */
+    private function validateState(): void
+    {
+        if (! isset($this->containerName) || $this->containerName === '') {
+            throw new UnableToGenerateSasException('A container name is required to generate a SAS.');
+        }
+
+        if ($this->identifier !== null) {
+            return;
+        }
+
+        if (! isset($this->expiresOn)) {
+            throw new UnableToGenerateSasException(
+                'An expiration time is required to generate a SAS without a stored access policy identifier.',
+            );
+        }
+
+        if ($this->permissions === null) {
+            throw new UnableToGenerateSasException(
+                'Permissions are required to generate a SAS without a stored access policy identifier.',
+            );
+        }
     }
 
     private function getCanonicalizedResource(string $accountName): string

@@ -31,6 +31,7 @@
     "ext-openssl": "*",
     "ext-simplexml": "*",
     "ext-zlib": "*",
+    "brianium/paratest": "^7.8",
     "caseyamcl/guzzle_retry_middleware": "^2.10",
     "guzzlehttp/guzzle": "^7.8",
     "guzzlehttp/test-server": "^0.6",

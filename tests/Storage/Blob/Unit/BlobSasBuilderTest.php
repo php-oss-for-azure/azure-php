@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AzureOss\Tests\Storage\Blob\Unit;
 
+use AzureOss\Storage\Blob\Exceptions\UnableToGenerateSasException;
 use AzureOss\Storage\Blob\Sas\BlobSasBuilder;
 use AzureOss\Storage\Blob\Sas\BlobSasPermissions;
 use AzureOss\Storage\Common\Auth\StorageSharedKeyCredential;
@@ -52,6 +53,32 @@ final class BlobSasBuilderTest extends TestCase
         parse_str($builder->build($this->credential), $query);
 
         self::assertSame('0.0.0.0-255.255.255.255', $query['sip'] ?? null);
+    }
+
+    #[Test]
+    public function it_requires_a_container_name(): void
+    {
+        $this->expectException(UnableToGenerateSasException::class);
+        $this->expectExceptionMessage('A container name is required to generate a SAS.');
+
+        BlobSasBuilder::new()
+            ->setPermissions(new BlobSasPermissions(read: true))
+            ->setExpiresOn(new \DateTimeImmutable('2030-01-01T00:00:00Z'))
+            ->build($this->credential);
+    }
+
+    #[Test]
+    public function it_requires_an_expiration_time_without_a_stored_access_policy(): void
+    {
+        $this->expectException(UnableToGenerateSasException::class);
+        $this->expectExceptionMessage(
+            'An expiration time is required to generate a SAS without a stored access policy identifier.',
+        );
+
+        BlobSasBuilder::new()
+            ->setContainerName('container')
+            ->setPermissions(new BlobSasPermissions(read: true))
+            ->build($this->credential);
     }
 
     /**

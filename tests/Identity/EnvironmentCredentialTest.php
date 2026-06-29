@@ -11,11 +11,14 @@ use AzureOss\Identity\EnvironmentCredential;
 use AzureOss\Identity\EnvironmentCredentialOptions;
 use AzureOss\Identity\TokenCredential;
 use AzureOss\Identity\TokenRequestContext;
+use AzureOss\Tests\LoadsFixtures;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 class EnvironmentCredentialTest extends TestCase
 {
+    use LoadsFixtures;
+
     /** @var array<string, string|false> */
     private array $originalEnv = [];
 
@@ -119,7 +122,7 @@ class EnvironmentCredentialTest extends TestCase
         $this->setEnv('AZURE_CLIENT_CERTIFICATE_PASSWORD', null);
         $this->setEnv(
             'AZURE_CLIENT_CERTIFICATE_PATH',
-            __DIR__.'/fixtures/client-cert-pem-unencrypted.pem',
+            $this->fixturePath('client-cert-pem-unencrypted.pem'),
         );
 
         $inner = $this->getCredential(new EnvironmentCredential);
@@ -136,7 +139,7 @@ class EnvironmentCredentialTest extends TestCase
         $this->setEnv('AZURE_CLIENT_CERTIFICATE_PASSWORD', null);
         $this->setEnv(
             'AZURE_CLIENT_CERTIFICATE_PATH',
-            __DIR__.'/fixtures/client-cert-pem-unencrypted.pem',
+            $this->fixturePath('client-cert-pem-unencrypted.pem'),
         );
 
         $inner = $this->getCredential(new EnvironmentCredential);

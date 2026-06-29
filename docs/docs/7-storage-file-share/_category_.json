@@ -1,0 +1,8 @@
+{
+  "label": "Storage File Share (Core)",
+  "position": 8,
+  "link": {
+    "type": "generated-index",
+    "description": "Overview, installation, and SAS URL guidance for the Azure Files PHP package."
+  }
+}

@@ -17,6 +17,10 @@
   ],
   "require": {
     "php": "^8.2",
+    "ext-curl": "*",
+    "ext-json": "*",
+    "ext-simplexml": "*",
+    "guzzlehttp/guzzle": "^7.8",
     "azure-oss/storage-common": "^2.0"
   },
   "config": {

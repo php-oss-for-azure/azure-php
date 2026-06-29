@@ -369,12 +369,17 @@ final class BlobContainerClient
             throw new UnableToGenerateSasException;
         }
 
+        $builder = clone $blobSasBuilder;
+
         if (StorageUriParserHelper::isDevelopmentUri($this->uri)) {
-            $blobSasBuilder->setProtocol(SasProtocol::HTTPS_AND_HTTP);
+            $builder->setProtocol(SasProtocol::HTTPS_AND_HTTP);
         }
 
-        $sas = $blobSasBuilder
+        $sas = $builder
             ->setContainerName($this->containerName)
+            ->setBlobName(null)
+            ->setSnapshot(null)
+            ->setBlobVersionId(null)
             ->build($this->credential);
 
         return $this->uri->withQuery(Query::build([

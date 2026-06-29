@@ -33,3 +33,7 @@ output connection_string_public string = storageModule.outputs.connection_string
 output connection_string_soft_deletes string = storageModule.outputs.connection_string_soft_deletes
 output connection_string_versions string = storageModule.outputs.connection_string_versions
 output connection_string_soft_deletes_versions string = storageModule.outputs.connection_string_soft_deletes_versions
+output file_share_name string = storageModule.outputs.file_share_name
+output file_share_storage_account_name string = storageModule.outputs.file_share_storage_account_name
+output file_share_storage_account_key string = storageModule.outputs.file_share_storage_account_key
+output file_share_smb_path string = storageModule.outputs.file_share_smb_path

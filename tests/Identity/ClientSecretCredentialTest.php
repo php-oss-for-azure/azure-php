@@ -7,21 +7,20 @@ namespace AzureOss\Tests\Identity;
 use AzureOss\Identity\AuthenticationFailedException;
 use AzureOss\Identity\ClientSecretCredential;
 use AzureOss\Identity\TokenRequestContext;
+use AzureOss\Tests\RequiresEnvironmentVariables;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 class ClientSecretCredentialTest extends TestCase
 {
+    use RequiresEnvironmentVariables;
+
     #[Test]
     public function get_token_works(): void
     {
-        $tenantId = getenv('AZURE_TENANT_ID');
-        $clientId = getenv('AZURE_CLIENT_ID');
-        $clientSecret = getenv('AZURE_CLIENT_SECRET');
-
-        if ($tenantId === false || $clientId === false || $clientSecret === false) {
-            self::markTestSkipped('Not all env variables have been set for this test');
-        }
+        $tenantId = self::getRequiredEnvironmentVariable('AZURE_TENANT_ID');
+        $clientId = self::getRequiredEnvironmentVariable('AZURE_CLIENT_ID');
+        $clientSecret = self::getRequiredEnvironmentVariable('AZURE_CLIENT_SECRET');
 
         $credential = new ClientSecretCredential($tenantId, $clientId, $clientSecret);
         $token = $credential->getToken(new TokenRequestContext(['https://graph.microsoft.com/.default']));

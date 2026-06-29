@@ -6,12 +6,15 @@ namespace AzureOss\Tests\Storage;
 
 use AzureOss\Storage\Queue\QueueClient;
 use AzureOss\Storage\Queue\QueueServiceClient;
+use AzureOss\Tests\RequiresEnvironmentVariables;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\TestCase;
 
 /** @mixin TestCase */
 trait CreatesTempQueues
 {
+    use RequiresEnvironmentVariables;
+
     /** @var list<QueueClient> */
     private array $tempQueues = [];
 
@@ -45,12 +48,6 @@ trait CreatesTempQueues
 
     private function resolveConnectionString(): string
     {
-        $value = getenv('AZURE_STORAGE_CONNECTION_STRING');
-
-        if ($value === false || $value === '') {
-            self::markTestSkipped('Missing environment variable: AZURE_STORAGE_CONNECTION_STRING');
-        }
-
-        return $value;
+        return self::getRequiredEnvironmentVariable('AZURE_STORAGE_CONNECTION_STRING');
     }
 }

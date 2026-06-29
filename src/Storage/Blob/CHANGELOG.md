@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Blob and container SAS generation now sign against a cloned `BlobSasBuilder`, preventing blob-specific state from leaking into later container SAS calls when the same builder instance is reused.
+- `BlobSasBuilder::build()` now validates required fields and throws `UnableToGenerateSasException` instead of surfacing raw typed-property initialization errors.
+
 ## 2.2.0
 
 ### Added
