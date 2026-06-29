@@ -1,5 +1,9 @@
 # Changelog
 
-## 0.1.0
+## Unreleased
 
-This package has not been released and does not expose a user-facing API yet.
+### Added
+
+- Added initial package metadata for `azure-oss/storage-file-share`.
+- Added package and docs skeletons that describe the current mounted-share workflow for Azure Files.
+- Added Azure test infrastructure that provisions and mounts a File Share and validates basic directory and file creation.

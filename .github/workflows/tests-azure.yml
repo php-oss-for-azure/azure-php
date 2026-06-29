@@ -60,6 +60,30 @@ jobs:
           echo "AZURE_STORAGE_CONNECTION_STRING_SOFT_DELETES=$(jq -r '.properties.outputs.connection_string_soft_deletes.value' deployment-output.json)" >> $GITHUB_ENV
           echo "AZURE_STORAGE_CONNECTION_STRING_VERSIONS=$(jq -r '.properties.outputs.connection_string_versions.value' deployment-output.json)" >> $GITHUB_ENV
           echo "AZURE_STORAGE_CONNECTION_STRING_SOFT_DELETES_VERSIONS=$(jq -r '.properties.outputs.connection_string_soft_deletes_versions.value' deployment-output.json)" >> $GITHUB_ENV
+          echo "AZURE_STORAGE_FILE_SHARE_NAME=$(jq -r '.properties.outputs.file_share_name.value' deployment-output.json)" >> $GITHUB_ENV
+          echo "AZURE_STORAGE_FILE_SHARE_ACCOUNT_NAME=$(jq -r '.properties.outputs.file_share_storage_account_name.value' deployment-output.json)" >> $GITHUB_ENV
+          echo "AZURE_STORAGE_FILE_SHARE_ACCOUNT_KEY=$(jq -r '.properties.outputs.file_share_storage_account_key.value' deployment-output.json)" >> $GITHUB_ENV
+          echo "AZURE_STORAGE_FILE_SHARE_SMB_PATH=$(jq -r '.properties.outputs.file_share_smb_path.value' deployment-output.json)" >> $GITHUB_ENV
+
+      - name: Mount Azure File Share
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cifs-utils
+
+          sudo mkdir -p /etc/smbcredentials
+          CREDENTIAL_FILE="/etc/smbcredentials/${AZURE_STORAGE_FILE_SHARE_ACCOUNT_NAME}.cred"
+
+          printf 'username=%s\npassword=%s\n' \
+            "${AZURE_STORAGE_FILE_SHARE_ACCOUNT_NAME}" \
+            "${AZURE_STORAGE_FILE_SHARE_ACCOUNT_KEY}" \
+            | sudo tee "${CREDENTIAL_FILE}" > /dev/null
+
+          sudo chmod 600 "${CREDENTIAL_FILE}"
+          sudo mkdir -p /mnt/azure-file-share
+          sudo mount -t cifs "${AZURE_STORAGE_FILE_SHARE_SMB_PATH}" /mnt/azure-file-share \
+            -o "credentials=${CREDENTIAL_FILE},serverino,nosharesock,actimeo=30,mfsymlinks,dir_mode=0777,file_mode=0777,vers=3.1.1"
+
+          echo "AZURE_STORAGE_FILE_SHARE_PATH=/mnt/azure-file-share" >> $GITHUB_ENV
 
       - name: Install PHP with extensions
         uses: shivammathur/setup-php@v2
@@ -73,6 +97,10 @@ jobs:
 
       - name: Run tests
         run: ./vendor/bin/phpunit
+
+      - name: Unmount Azure File Share
+        if: always()
+        run: sudo umount /mnt/azure-file-share || true
 
       - name: Destroy Azure Infrastructure
         if: always()

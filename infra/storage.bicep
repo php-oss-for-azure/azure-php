@@ -48,6 +48,8 @@ var storageConfigs = [
   }
 ]
 
+var fileShareName = 'sdktests'
+
 // --------------------------------------------------------------------------
 // Storage Accounts
 // --------------------------------------------------------------------------
@@ -95,6 +97,24 @@ resource blobServices 'Microsoft.Storage/storageAccounts/blobServices@2023-01-01
 ]
 
 // --------------------------------------------------------------------------
+// File Services — basic SMB share for integration tests
+// --------------------------------------------------------------------------
+resource fileService 'Microsoft.Storage/storageAccounts/fileServices@2023-01-01' = {
+  parent: storageAccounts[0]
+  name: 'default'
+}
+
+resource testFileShare 'Microsoft.Storage/storageAccounts/fileServices/shares@2023-01-01' = {
+  parent: fileService
+  name: fileShareName
+  properties: {
+    accessTier: 'TransactionOptimized'
+    enabledProtocols: 'SMB'
+    shareQuota: 100
+  }
+}
+
+// --------------------------------------------------------------------------
 // Outputs — connection strings
 // --------------------------------------------------------------------------
 var suffix = environment().suffixes.storage
@@ -108,3 +128,11 @@ output connection_string_soft_deletes string = 'DefaultEndpointsProtocol=https;A
 output connection_string_versions string = 'DefaultEndpointsProtocol=https;AccountName=${storageAccounts[3].name};AccountKey=${storageAccounts[3].listKeys().keys[0].value};EndpointSuffix=${suffix}'
 
 output connection_string_soft_deletes_versions string = 'DefaultEndpointsProtocol=https;AccountName=${storageAccounts[4].name};AccountKey=${storageAccounts[4].listKeys().keys[0].value};EndpointSuffix=${suffix}'
+
+output file_share_name string = testFileShare.name
+
+output file_share_storage_account_name string = storageAccounts[0].name
+
+output file_share_storage_account_key string = storageAccounts[0].listKeys().keys[0].value
+
+output file_share_smb_path string = '//${storageAccounts[0].name}.file.${suffix}/${testFileShare.name}'
