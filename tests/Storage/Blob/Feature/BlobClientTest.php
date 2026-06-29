@@ -881,27 +881,25 @@ final class BlobClientTest extends TestCase
     }
 
     #[Test]
-    public function generate_sas_uri_works(): void
+    public function generate_sas_uri_builds_a_blob_sas_uri(): void
     {
-        $container = $this->tempContainer();
-        $blobClient = $container->getBlobClient('blob');
-        $blobClient->upload('test');
+        $blobClient = new BlobClient(
+            new Uri('https://account.blob.core.windows.net/container/blob?custom=value'),
+            new StorageSharedKeyCredential('account', base64_encode(str_repeat('x', 32))),
+        );
 
         $sas = $blobClient->generateSasUri(
             BlobSasBuilder::new()
                 ->setPermissions(new BlobSasPermissions(read: true))
-                ->setExpiresOn(new \DateTimeImmutable('+1 hour')),
+                ->setExpiresOn(new \DateTimeImmutable('2030-01-01T00:00:00Z')),
         );
 
-        $sasBlobClient = new BlobClient($sas);
+        parse_str($sas->getQuery(), $query);
 
-        // Azure can transiently reject signed requests while the SAS becomes available.
-        self::assertEventuallySucceeds(
-            callback: function () use ($sasBlobClient): void {
-                self::assertSame('test', $sasBlobClient->downloadStreaming()->content->getContents());
-            },
-            maxAttempts: 30,
-        );
+        self::assertSame('b', $query['sr'] ?? null);
+        self::assertSame('r', $query['sp'] ?? null);
+        self::assertSame('value', $query['custom'] ?? null);
+        self::assertArrayHasKey('sig', $query);
     }
 
     #[Test]

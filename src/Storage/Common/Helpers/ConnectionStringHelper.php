@@ -24,46 +24,31 @@ final class ConnectionStringHelper
 
     public static function getBlobEndpoint(string $connectionString): ?UriInterface
     {
-        if ($connectionString === self::DEV_CONNECTION_STRING_SHORTCUT) {
-            return new Uri(self::DEV_BLOB_ENDPOINT);
-        }
-
-        $segments = self::getSegments($connectionString);
-
-        if (isset($segments['BlobEndpoint'])) {
-            $uri = $segments['BlobEndpoint'];
-        } elseif (isset($segments['AccountName'], $segments['EndpointSuffix'])) {
-            $uri = sprintf('%s.blob.%s', $segments['AccountName'], $segments['EndpointSuffix']);
-        } else {
-            return null;
-        }
-
-        $uriWithoutScheme = preg_replace('(^https?://)', '', $uri);
-        $scheme = $segments['DefaultEndpointsProtocol'] ?? 'https';
-
-        return new Uri("$scheme://$uriWithoutScheme");
+        return self::getServiceEndpoint(
+            $connectionString,
+            endpointKey: 'BlobEndpoint',
+            endpointSubdomain: 'blob',
+            developmentEndpoint: self::DEV_BLOB_ENDPOINT,
+        );
     }
 
     public static function getQueueEndpoint(string $connectionString): ?UriInterface
     {
-        if ($connectionString === self::DEV_CONNECTION_STRING_SHORTCUT) {
-            return new Uri(self::DEV_QUEUE_ENDPOINT);
-        }
+        return self::getServiceEndpoint(
+            $connectionString,
+            endpointKey: 'QueueEndpoint',
+            endpointSubdomain: 'queue',
+            developmentEndpoint: self::DEV_QUEUE_ENDPOINT,
+        );
+    }
 
-        $segments = self::getSegments($connectionString);
-
-        if (isset($segments['QueueEndpoint'])) {
-            $uri = $segments['QueueEndpoint'];
-        } elseif (isset($segments['AccountName'], $segments['EndpointSuffix'])) {
-            $uri = sprintf('%s.queue.%s', $segments['AccountName'], $segments['EndpointSuffix']);
-        } else {
-            return null;
-        }
-
-        $uriWithoutScheme = preg_replace('(^https?://)', '', $uri);
-        $scheme = $segments['DefaultEndpointsProtocol'] ?? 'https';
-
-        return new Uri("$scheme://$uriWithoutScheme");
+    public static function getFileEndpoint(string $connectionString): ?UriInterface
+    {
+        return self::getServiceEndpoint(
+            $connectionString,
+            endpointKey: 'FileEndpoint',
+            endpointSubdomain: 'file',
+        );
     }
 
     public static function getAccountName(string $connectionString): ?string
@@ -87,6 +72,32 @@ final class ConnectionStringHelper
     public static function getSas(string $connectionString): ?string
     {
         return self::getSegments($connectionString)['SharedAccessSignature'] ?? null;
+    }
+
+    private static function getServiceEndpoint(
+        string $connectionString,
+        string $endpointKey,
+        string $endpointSubdomain,
+        ?string $developmentEndpoint = null,
+    ): ?UriInterface {
+        if ($connectionString === self::DEV_CONNECTION_STRING_SHORTCUT && $developmentEndpoint !== null) {
+            return new Uri($developmentEndpoint);
+        }
+
+        $segments = self::getSegments($connectionString);
+
+        if (isset($segments[$endpointKey])) {
+            $uri = $segments[$endpointKey];
+        } elseif (isset($segments['AccountName'], $segments['EndpointSuffix'])) {
+            $uri = sprintf('%s.%s.%s', $segments['AccountName'], $endpointSubdomain, $segments['EndpointSuffix']);
+        } else {
+            return null;
+        }
+
+        $uriWithoutScheme = preg_replace('(^https?://)', '', $uri);
+        $scheme = $segments['DefaultEndpointsProtocol'] ?? 'https';
+
+        return new Uri("$scheme://$uriWithoutScheme");
     }
 
     /**

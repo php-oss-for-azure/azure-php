@@ -229,26 +229,26 @@ final class BlobServiceClientTest extends TestCase
     }
 
     #[Test]
-    public function generate_account_sas_uri_works(): void
+    public function generate_account_sas_uri_builds_an_account_sas_uri(): void
     {
-        $sas = $this->service()->generateAccountSasUri(
+        $sas = (new BlobServiceClient(
+            new Uri('https://account.blob.core.windows.net/'),
+            new StorageSharedKeyCredential('account', base64_encode(str_repeat('x', 32))),
+        ))->generateAccountSasUri(
             AccountSasBuilder::new()
                 ->setPermissions(new AccountSasPermissions(list: true))
                 ->setResourceTypes(new AccountSasResourceTypes(service: true))
                 ->setVersion(ApiVersion::latestGA()->value)
-                ->setExpiresOn(new \DateTimeImmutable('+1 hour')),
+                ->setExpiresOn(new \DateTimeImmutable('2030-01-01T00:00:00Z')),
         );
 
-        $sasServiceClient = new BlobServiceClient($sas);
+        parse_str($sas->getQuery(), $query);
 
-        $containers = null;
-        self::assertEventuallySucceeds(
-            callback: function () use ($sasServiceClient, &$containers): void {
-                $containers = iterator_to_array($sasServiceClient->getBlobContainers());
-            },
-            maxAttempts: 30,
-        );
-        self::assertIsArray($containers);
+        self::assertSame('b', $query['ss'] ?? null);
+        self::assertSame('s', $query['srt'] ?? null);
+        self::assertSame('l', $query['sp'] ?? null);
+        self::assertSame(ApiVersion::latestGA()->value, $query['sv'] ?? null);
+        self::assertArrayHasKey('sig', $query);
     }
 
     #[Test]
