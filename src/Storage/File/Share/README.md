@@ -3,7 +3,7 @@
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/azure-oss/storage-file-share.svg)](https://packagist.org/packages/azure-oss/storage-file-share)
 [![Packagist Downloads](https://img.shields.io/packagist/dt/azure-oss/storage-file-share)](https://packagist.org/packages/azure-oss/storage-file-share)
 
-A PHP SDK for Azure File Share management and service operations that are not exposed through standard SMB or NFS mounts.
+A PHP SDK for Azure Files service operations and SAS generation.
 
 > [!IMPORTANT]
 > This package is community-maintained and is not affiliated with, endorsed by, or supported by Microsoft.
@@ -14,39 +14,26 @@ A PHP SDK for Azure File Share management and service operations that are not ex
 composer require azure-oss/storage-file-share
 ```
 
-## Scope
+## Documentation
 
-This package is not intended to replace an SMB or NFS mount.
+Read the File Share docs at [php-oss-for-azure.github.io/storage-file-share/core](https://php-oss-for-azure.github.io/storage-file-share/core).
 
-If an operation is already handled well through a mounted Azure File Share, it is out of scope for this SDK. That includes routine filesystem-style work such as creating directories, reading files, writing files, renaming paths, and deleting content through the mounted share.
-
-The purpose of this package is the opposite boundary: it should cover Azure Files capabilities that are not available through a normal mount, or are not practical to manage through one. That includes Azure-specific management, metadata, protocol-specific service features, and other control-plane or service-plane operations that need the Azure Files API rather than ordinary filesystem calls.
-
-In short:
-
-- Use **SMB** or **NFS** mounts for normal file and directory manipulation.
-- Use `azure-oss/storage-file-share` for Azure Files features that a mount does not expose.
-
-## SAS generation
-
-This package includes a minimal client hierarchy and File Share service SAS builder for share and path-based SAS URIs.
-
-SAS generation requires a `StorageSharedKeyCredential`. Clients created from a SAS-only connection string can use that SAS, but they cannot generate a new SAS.
-
-`UseDevelopmentStorage=true` is not supported for this package. Azurite does not currently provide Azure Files endpoints, so File Share clients must target a real File service endpoint.
-
-Azure Files service SAS distinguishes share (`sr=s`) and file (`sr=f`) resources. When you generate a SAS from a `ShareDirectoryClient`, the directory path is signed using the file-path form, matching the current Azure .NET SDK behavior.
+## Quickstart
 
 ```php
+<?php
+
 use AzureOss\Storage\File\Share\Sas\ShareFileSasPermissions;
 use AzureOss\Storage\File\Share\Sas\ShareSasBuilder;
 use AzureOss\Storage\File\Share\ShareServiceClient;
 
-$service = ShareServiceClient::fromConnectionString($_ENV['AZURE_STORAGE_CONNECTION_STRING']);
+$service = ShareServiceClient::fromConnectionString(
+    getenv('AZURE_STORAGE_CONNECTION_STRING')
+);
 
 $file = $service
     ->getShareClient('documents')
-    ->getDirectoryClient('reports/2026')
+    ->getDirectoryClient('reports')
     ->getFileClient('summary.txt');
 
 $sasUri = $file->generateSasUri(
@@ -54,6 +41,8 @@ $sasUri = $file->generateSasUri(
         ->setPermissions(new ShareFileSasPermissions(read: true))
         ->setExpiresOn(new DateTimeImmutable('+15 minutes')),
 );
+
+echo $sasUri.PHP_EOL;
 ```
 
 ## Related packages
