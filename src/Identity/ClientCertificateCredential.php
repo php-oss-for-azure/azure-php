@@ -201,7 +201,7 @@ final class ClientCertificateCredential implements TokenCredential
      */
     private function loadCertificateMaterial(): array
     {
-        $contents = file_get_contents($this->clientCertificatePath);
+        $contents = @file_get_contents($this->clientCertificatePath);
         if ($contents === false) {
             throw new \RuntimeException("Unable to read certificate file: {$this->clientCertificatePath}");
         }

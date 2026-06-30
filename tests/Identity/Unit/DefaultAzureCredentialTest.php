@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace AzureOss\Tests\Identity\Unit;
 
+use AzureOss\Identity\AccessToken;
 use AzureOss\Identity\ChainedTokenCredential;
 use AzureOss\Identity\DefaultAzureCredential;
 use AzureOss\Identity\DefaultAzureCredentialOptions;
 use AzureOss\Identity\EnvironmentCredential;
 use AzureOss\Identity\ManagedIdentityCredential;
 use AzureOss\Identity\TokenCredential;
+use AzureOss\Identity\TokenRequestContext;
 use AzureOss\Identity\WorkloadIdentityCredential;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -90,5 +92,32 @@ class DefaultAzureCredentialTest extends TestCase
         ));
 
         self::assertSame([], $sources);
+    }
+
+    #[Test]
+    public function get_token_delegates_to_the_chain(): void
+    {
+        $expected = new AccessToken('token', new \DateTimeImmutable('+1 hour'), 'Bearer');
+        $credential = new DefaultAzureCredential;
+
+        $setter = \Closure::bind(
+            static function (DefaultAzureCredential $credential, TokenCredential $chain): void {
+                $credential->chain = $chain;
+            },
+            null,
+            DefaultAzureCredential::class,
+        );
+
+        $setter($credential, new class($expected) implements TokenCredential
+        {
+            public function __construct(private AccessToken $token) {}
+
+            public function getToken(TokenRequestContext $context): AccessToken
+            {
+                return $this->token;
+            }
+        });
+
+        self::assertSame($expected, $credential->getToken(new TokenRequestContext(['scope'])));
     }
 }

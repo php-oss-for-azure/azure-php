@@ -11,7 +11,10 @@ use AzureOss\Identity\EnvironmentCredential;
 use AzureOss\Identity\EnvironmentCredentialOptions;
 use AzureOss\Identity\TokenCredential;
 use AzureOss\Identity\TokenRequestContext;
+use AzureOss\Tests\Identity\Support\FakeHttpClient;
 use AzureOss\Tests\LoadsFixtures;
+use GuzzleHttp\Psr7\HttpFactory;
+use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -161,5 +164,38 @@ class EnvironmentCredentialTest extends TestCase
 
         self::assertInstanceOf(ClientSecretCredential::class, $inner);
         self::assertSame('example.invalid', $this->authorityHostFromClientSecretCredential($inner));
+    }
+
+    #[Test]
+    public function get_token_delegates_to_the_selected_client_secret_credential(): void
+    {
+        $this->setEnv('AZURE_TENANT_ID', 'tenant');
+        $this->setEnv('AZURE_CLIENT_ID', 'client');
+        $this->setEnv('AZURE_CLIENT_SECRET', 'secret');
+        $this->setEnv('AZURE_CLIENT_CERTIFICATE_PATH', null);
+        $this->setEnv('AZURE_CLIENT_CERTIFICATE_PASSWORD', null);
+
+        $httpClient = new FakeHttpClient([
+            new Response(200, [], json_encode([
+                'access_token' => 'env-token',
+                'expires_in' => 3600,
+                'token_type' => 'Bearer',
+            ], JSON_THROW_ON_ERROR)),
+        ]);
+        $factory = new HttpFactory;
+
+        $token = (new EnvironmentCredential(new EnvironmentCredentialOptions(
+            authorityHost: 'example.invalid',
+            httpClient: $httpClient,
+            requestFactory: $factory,
+            streamFactory: $factory,
+        )))->getToken(new TokenRequestContext(['https://graph.microsoft.com/.default']));
+
+        self::assertSame('env-token', $token->token);
+        self::assertCount(1, $httpClient->requests);
+        self::assertSame(
+            'https://example.invalid/tenant/oauth2/v2.0/token',
+            (string) $httpClient->requests[0]->getUri(),
+        );
     }
 }
