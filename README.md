@@ -6,10 +6,6 @@ In November 2023, Microsoft officially archived their [Azure SDK for PHP](https:
 
 We picked up where they left off.
 
-PHP OSS for Azure is the new project name. Composer package names, namespaces,
-and other technical identifiers still use `azure-oss` for backwards
-compatibility.
-
 <img src="https://php-oss-for-azure.github.io/img/logo.svg" width="150" alt="Screenshot">
 
 ## Documentation
