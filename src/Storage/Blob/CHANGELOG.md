@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+No user-facing changes since `2.2.2`.
+
+## 2.2.2
+
 ### Changed
 
 - Blob SAS generation now uses the shared storage-common date helper for SAS timestamp formatting.

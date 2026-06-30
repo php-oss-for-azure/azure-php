@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+No user-facing changes since `2.1.1`.
+
+## 2.1.1
+
 ### Changed
 
 - Storage SAS generation now uses a shared storage-common date helper across common, blob, and file share packages, keeping the lowest Storage layer self-contained and leading the shared timestamp formatting behavior.
