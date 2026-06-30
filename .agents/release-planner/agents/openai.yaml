@@ -1,0 +1,4 @@
+interface:
+  display_name: "Release Planner"
+  short_description: "Plan monorepo package releases"
+  default_prompt: "Use $release-planner to update unreleased changelogs and prepare the tag commands for this Azure PHP monorepo release."
