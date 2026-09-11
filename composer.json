@@ -35,7 +35,7 @@
     "caseyamcl/guzzle_retry_middleware": "^3.0",
     "guzzlehttp/guzzle": "^8.0",
     "guzzlehttp/test-server": "^1.0",
-    "laravel/pint": "1.30.5",
+    "laravel/pint": "1.31.1",
     "league/flysystem-adapter-test-utilities": "^3.28",
     "league/flysystem-bundle": "^3.7",
     "orchestra/testbench": "^11.2",
