@@ -18,7 +18,12 @@ use Psr\Http\Message\UriInterface;
  */
 final class ClientFactory
 {
-    public function create(?UriInterface $uri = null, StorageSharedKeyCredential|TokenCredential|null $credential = null, ?RequestExceptionDeserializer $exceptionDeserializer = null, HttpClientOptions $options = new HttpClientOptions, ?ApiVersion $apiVersion = null): Client
+    /**
+     * Creates an HTTP client with the storage middleware stack.
+     *
+     * @param  RequestSigner|null  $signer  Signer to authorize requests with instead of one created for `$credential`, so requests signed outside the client share its token cache.
+     */
+    public function create(?UriInterface $uri = null, StorageSharedKeyCredential|TokenCredential|null $credential = null, ?RequestExceptionDeserializer $exceptionDeserializer = null, HttpClientOptions $options = new HttpClientOptions, ?ApiVersion $apiVersion = null, ?RequestSigner $signer = null): Client
     {
         $handlerStack = HandlerStack::create();
 
@@ -34,15 +39,25 @@ final class ClientFactory
             $handlerStack->push(new AddDefaultQueryParamsMiddleware($uri->getQuery()));
         }
 
-        if ($credential instanceof StorageSharedKeyCredential) {
-            $handlerStack->push(new AddSharedKeyAuthorizationHeaderMiddleware($credential));
-        } elseif ($credential instanceof TokenCredential) {
-            $handlerStack->push(new AddEntraIdAuthorizationHeaderMiddleware($credential));
+        $signer ??= $this->createRequestSigner($credential);
+
+        if ($signer !== null) {
+            $handlerStack->push($signer);
         }
 
         $handlerStack->push($this->createRetryMiddleware());
 
         return new Client(array_merge(['handler' => $handlerStack], $options->toGuzzleHttpClientConfig()));
+    }
+
+    /** Creates the signer for a credential, or null when requests are anonymous or authorized by SAS. */
+    public function createRequestSigner(StorageSharedKeyCredential|TokenCredential|null $credential): ?RequestSigner
+    {
+        return match (true) {
+            $credential instanceof StorageSharedKeyCredential => new AddSharedKeyAuthorizationHeaderMiddleware($credential),
+            $credential instanceof TokenCredential => new AddEntraIdAuthorizationHeaderMiddleware($credential),
+            default => null,
+        };
     }
 
     private function createRetryMiddleware(): \Closure

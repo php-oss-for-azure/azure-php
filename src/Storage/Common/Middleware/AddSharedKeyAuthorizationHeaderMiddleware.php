@@ -11,7 +11,7 @@ use Psr\Http\Message\RequestInterface;
 /**
  * @internal
  */
-final class AddSharedKeyAuthorizationHeaderMiddleware
+final class AddSharedKeyAuthorizationHeaderMiddleware implements RequestSigner
 {
     private const INCLUDED_HEADERS = [
         'Content-Encoding',
@@ -32,14 +32,17 @@ final class AddSharedKeyAuthorizationHeaderMiddleware
     public function __invoke(callable $handler): \Closure
     {
         return function (RequestInterface $request, array $options) use ($handler) {
-            $accountName = $this->sharedKeyCredential->accountName;
-            $stringToSign = $this->computeStringToSign($request);
-            $signature = $this->sharedKeyCredential->computeHMACSHA256($stringToSign);
-
-            $request = $request->withHeader('Authorization', "SharedKey $accountName:$signature");
-
-            return $handler($request, $options);
+            return $handler($this->sign($request), $options);
         };
+    }
+
+    public function sign(RequestInterface $request): RequestInterface
+    {
+        $accountName = $this->sharedKeyCredential->accountName;
+        $stringToSign = $this->computeStringToSign($request);
+        $signature = $this->sharedKeyCredential->computeHMACSHA256($stringToSign);
+
+        return $request->withHeader('Authorization', "SharedKey $accountName:$signature");
     }
 
     private function computeStringToSign(RequestInterface $request): string
