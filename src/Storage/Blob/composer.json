@@ -25,7 +25,7 @@
     "ext-json": "*",
     "ext-simplexml": "*",
     "guzzlehttp/guzzle": "^7.8 || ^8.0",
-    "azure-oss/storage-common": "^2.0"
+    "azure-oss/storage-common": "^2.3"
   },
   "config": {
     "sort-packages": true

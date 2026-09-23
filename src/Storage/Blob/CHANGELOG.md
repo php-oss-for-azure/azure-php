@@ -2,7 +2,16 @@
 
 ## Unreleased
 
-No user-facing changes since `2.3.1`.
+### Added
+
+- Added `BlobBatchClient` for deleting up to 256 blobs in a single Blob Batch request, created with `BlobContainerClient::getBlobBatchClient()` or `BlobServiceClient::getBlobBatchClient()`. A SAS needs Write (`w`) permission for the batch and Delete (`d`) permission for the blobs.
+- Added `BlobBatchClient::deleteBlobs()` and `deleteBlobsAsync()`, accepting blob names or blob clients and an optional `DeleteSnapshotsOption` for every blob.
+- Added `BlobBatch` for per-blob delete options, created with `BlobBatchClient::createBatch()` and sent with `submitBatch()` or `submitBatchAsync()` through any batch client with the same URI and credential.
+- Added `BlobBatchException`, a `BlobStorageException` that carries a `BlobBatchFailure` with the position, the blob as given and the error of each failed sub-request. A batch the service rejects as a whole throws a plain `BlobStorageException`.
+
+### Changed
+
+- Requires `azure-oss/storage-common` `^2.3`.
 
 ## 2.3.1
 

@@ -25,7 +25,7 @@ azure-oss/storage is the core Azure Blob Storage SDK for PHP.
   - Download via streaming and access response properties
   - Copy blobs (synchronous and asynchronous)
   - List blobs (flat, by prefix, and hierarchical listing) with page sizing
-  - Delete blobs
+  - Delete blobs, including up to 256 blobs in a single batch request
   - Read properties and manage metadata
   - Blob index tags: set/get tags and query blobs by tags (account or container scope)
 - SAS:

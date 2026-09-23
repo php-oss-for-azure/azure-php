@@ -79,6 +79,7 @@ $blob->deleteIfExists();
   - Copy blobs (synchronous and asynchronous)
   - List blobs (flat, by prefix, and hierarchical listing) with page sizing
   - Delete and restore soft-deleted blobs
+  - Delete up to 256 blobs in a single request with the Blob Batch API
   - Create, read, copy, and delete snapshots
   - Select, read, restore, and delete blob versions
   - Read properties and manage metadata
