@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-No user-facing changes since `2.2.1`.
+### Added
+
+- Added an internal `RequestSigner`, implemented by the shared key and Microsoft Entra ID authorization middleware, for signing Blob Batch sub-requests. The HTTP client and the sub-requests share one signer, so a Microsoft Entra ID token is fetched once per batch.
 
 ## 2.2.1
 

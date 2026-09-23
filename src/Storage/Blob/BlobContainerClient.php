@@ -12,6 +12,7 @@ use AzureOss\Storage\Blob\Exceptions\UnableToGenerateSasException;
 use AzureOss\Storage\Blob\Helpers\BlobUriParserHelper;
 use AzureOss\Storage\Blob\Helpers\MetadataHelper;
 use AzureOss\Storage\Blob\Models\Blob;
+use AzureOss\Storage\Blob\Models\BlobBatchClientOptions;
 use AzureOss\Storage\Blob\Models\BlobClientOptions;
 use AzureOss\Storage\Blob\Models\BlobContainerClientOptions;
 use AzureOss\Storage\Blob\Models\BlobContainerProperties;
@@ -31,6 +32,7 @@ use AzureOss\Storage\Blob\Models\TaggedBlob;
 use AzureOss\Storage\Blob\Responses\FindBlobsByTagBody;
 use AzureOss\Storage\Blob\Responses\ListBlobsResponseBody;
 use AzureOss\Storage\Blob\Sas\BlobSasBuilder;
+use AzureOss\Storage\Blob\Specialized\BlobBatchClient;
 use AzureOss\Storage\Blob\Specialized\BlobLeaseClient;
 use AzureOss\Storage\Blob\Specialized\BlockBlobClient;
 use AzureOss\Storage\Common\Auth\StorageSharedKeyCredential;
@@ -104,6 +106,21 @@ final class BlobContainerClient
             $leaseId,
             container: true,
             options: new BlobLeaseClientOptions($this->options->httpClientOptions, $this->options->apiVersion),
+        );
+    }
+
+    /**
+     * Creates a batch client for this container without making a service request.
+     *
+     * The batch client takes blob names relative to this container and uses this client's credential or SAS.
+     */
+    public function getBlobBatchClient(): BlobBatchClient
+    {
+        return new BlobBatchClient(
+            $this->uri,
+            $this->credential,
+            $this->containerName,
+            new BlobBatchClientOptions($this->options->httpClientOptions, $this->options->apiVersion),
         );
     }
 

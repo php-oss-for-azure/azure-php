@@ -12,7 +12,7 @@ use Psr\Http\Message\RequestInterface;
 /**
  * @internal
  */
-final class AddEntraIdAuthorizationHeaderMiddleware
+final class AddEntraIdAuthorizationHeaderMiddleware implements RequestSigner
 {
     private readonly TokenRequestContext $tokenRequestContext;
 
@@ -26,16 +26,19 @@ final class AddEntraIdAuthorizationHeaderMiddleware
     public function __invoke(callable $handler): \Closure
     {
         return function (RequestInterface $request, array $options) use ($handler) {
-            if ($this->cachedAccessToken === null ||
-                $this->expiresInAMinute($this->cachedAccessToken)
-            ) {
-                $this->cachedAccessToken = $this->tokenCredential->getToken($this->tokenRequestContext);
-            }
-
-            $request = $request->withHeader('Authorization', $this->cachedAccessToken->tokenType.' '.$this->cachedAccessToken->token);
-
-            return $handler($request, $options);
+            return $handler($this->sign($request), $options);
         };
+    }
+
+    public function sign(RequestInterface $request): RequestInterface
+    {
+        if ($this->cachedAccessToken === null ||
+            $this->expiresInAMinute($this->cachedAccessToken)
+        ) {
+            $this->cachedAccessToken = $this->tokenCredential->getToken($this->tokenRequestContext);
+        }
+
+        return $request->withHeader('Authorization', $this->cachedAccessToken->tokenType.' '.$this->cachedAccessToken->token);
     }
 
     private function expiresInAMinute(AccessToken $accessToken): bool

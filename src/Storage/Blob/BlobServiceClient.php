@@ -8,6 +8,7 @@ use AzureOss\Identity\TokenCredential;
 use AzureOss\Storage\Blob\Exceptions\BlobStorageExceptionDeserializer;
 use AzureOss\Storage\Blob\Exceptions\InvalidConnectionStringException;
 use AzureOss\Storage\Blob\Exceptions\UnableToGenerateSasException;
+use AzureOss\Storage\Blob\Models\BlobBatchClientOptions;
 use AzureOss\Storage\Blob\Models\BlobContainer;
 use AzureOss\Storage\Blob\Models\BlobContainerClientOptions;
 use AzureOss\Storage\Blob\Models\BlobContainerInclude;
@@ -16,6 +17,7 @@ use AzureOss\Storage\Blob\Models\GetBlobContainersOptions;
 use AzureOss\Storage\Blob\Models\TaggedBlob;
 use AzureOss\Storage\Blob\Responses\FindBlobsByTagBody;
 use AzureOss\Storage\Blob\Responses\ListContainersResponseBody;
+use AzureOss\Storage\Blob\Specialized\BlobBatchClient;
 use AzureOss\Storage\Common\Auth\StorageSharedKeyCredential;
 use AzureOss\Storage\Common\Helpers\ConnectionStringHelper;
 use AzureOss\Storage\Common\Helpers\StorageUriParserHelper;
@@ -89,6 +91,20 @@ final class BlobServiceClient
             $this->uri->withPath($this->uri->getPath().$containerName),
             $this->credential,
             new BlobContainerClientOptions($this->options->httpClientOptions, $this->options->apiVersion),
+        );
+    }
+
+    /**
+     * Creates a batch client for the storage account without making a service request.
+     *
+     * The batch client takes `<container>/<blob>` names, so one batch can span containers, and uses this client's credential or SAS.
+     */
+    public function getBlobBatchClient(): BlobBatchClient
+    {
+        return new BlobBatchClient(
+            $this->uri,
+            $this->credential,
+            options: new BlobBatchClientOptions($this->options->httpClientOptions, $this->options->apiVersion),
         );
     }
 

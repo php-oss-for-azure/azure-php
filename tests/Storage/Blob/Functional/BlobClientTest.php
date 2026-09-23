@@ -4,11 +4,18 @@ declare(strict_types=1);
 
 namespace AzureOss\Tests\Storage\Blob\Functional;
 
+use AzureOss\Identity\AccessToken;
+use AzureOss\Identity\TokenCredential;
+use AzureOss\Identity\TokenRequestContext;
 use AzureOss\Storage\Blob\BlobClient;
+use AzureOss\Storage\Blob\BlobContainerClient;
 use AzureOss\Storage\Blob\BlobServiceClient;
+use AzureOss\Storage\Blob\Exceptions\BlobBatchException;
+use AzureOss\Storage\Blob\Exceptions\BlobStorageException;
 use AzureOss\Storage\Blob\Models\AbortCopyFromUriOptions;
 use AzureOss\Storage\Blob\Models\AcquireBlobLeaseOptions;
 use AzureOss\Storage\Blob\Models\BlobContainerInclude;
+use AzureOss\Storage\Blob\Models\BlobErrorCode;
 use AzureOss\Storage\Blob\Models\BlobHttpHeaders;
 use AzureOss\Storage\Blob\Models\BlobInclude;
 use AzureOss\Storage\Blob\Models\BlobRequestConditions;
@@ -29,6 +36,7 @@ use AzureOss\Storage\Blob\Models\SyncCopyFromUriOptions;
 use AzureOss\Storage\Blob\Models\UploadBlobOptions;
 use AzureOss\Storage\Blob\Sas\BlobSasBuilder;
 use AzureOss\Storage\Blob\Sas\BlobSasPermissions;
+use AzureOss\Storage\Blob\Specialized\BlobBatchClient;
 use AzureOss\Storage\Blob\Specialized\BlockBlobClient;
 use AzureOss\Storage\Common\ApiVersion;
 use AzureOss\Storage\Common\Auth\StorageSharedKeyCredential;
@@ -40,12 +48,17 @@ use GuzzleHttp\Psr7\Uri;
 use GuzzleHttp\Server\Server;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\UriInterface;
 
 class BlobClientTest extends TestCase
 {
     use CreatesTempFiles;
+
+    private const BATCH_RESPONSE_BOUNDARY = 'batchresponse_66925647-d0cb-4109-b6d3-28efe3e1e5ed';
+
+    private const DEVSTORE_ACCOUNT_KEY = 'Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==';
 
     private BlobClient $blob;
 
@@ -1074,5 +1087,464 @@ XML),
             self::assertSame('"match"', $request->getHeaderLine('If-Match'));
             self::assertSame('11111111-1111-4111-8111-111111111111', $request->getHeaderLine('x-ms-lease-id'));
         }
+    }
+
+    #[Test]
+    public function delete_blobs_sends_signed_sub_requests(): void
+    {
+        Server::enqueue([self::batchResponse([202, 202]), new Response(501)]);
+
+        $this->batchContainer(new StorageSharedKeyCredential('devstoreaccount1', self::DEVSTORE_ACCOUNT_KEY))
+            ->getBlobBatchClient()
+            ->deleteBlobs(['blob one.txt', 'nested/ünï+.txt']);
+
+        $request = self::singleReceivedRequest();
+        $parts = self::batchSubRequests($request);
+
+        self::assertSame('POST', $request->getMethod());
+        self::assertSame(['restype' => 'container', 'comp' => 'batch'], $this->query($request->getUri()));
+        self::assertCount(2, $parts);
+        self::assertStringContainsString("Content-ID: 0\r\n", $parts[0]);
+        self::assertStringContainsString("DELETE /devstoreaccount1/test/blob%20one.txt HTTP/1.1\r\n", $parts[0]);
+        self::assertStringContainsString("Content-ID: 1\r\n", $parts[1]);
+        self::assertStringContainsString("DELETE /devstoreaccount1/test/nested/%C3%BCn%C3%AF+.txt HTTP/1.1\r\n", $parts[1]);
+
+        foreach (['/devstoreaccount1/test/blob%20one.txt', '/devstoreaccount1/test/nested/%C3%BCn%C3%AF+.txt'] as $i => $path) {
+            self::assertSame(1, preg_match('/^x-ms-date: (.+ GMT)\r$/m', $parts[$i], $date));
+            self::assertStringContainsString('Authorization: '.self::sharedKeyAuthorization("DELETE\n".str_repeat("\n", 11)."x-ms-date:{$date[1]}\n/devstoreaccount1{$path}")."\r\n", $parts[$i]);
+            self::assertStringNotContainsStringIgnoringCase('x-ms-version', $parts[$i]);
+            self::assertStringNotContainsStringIgnoringCase('Host:', $parts[$i]);
+        }
+    }
+
+    #[Test]
+    public function service_batch_client_sends_blob_paths(): void
+    {
+        Server::enqueue([self::batchResponse([202, 202]), new Response(501)]);
+
+        $service = new BlobServiceClient(self::serverUri('/devstoreaccount1'));
+        $service->getBlobBatchClient()->deleteBlobs([
+            'first/a.txt',
+            $service->getContainerClient('second')->getBlobClient('b.txt'),
+        ]);
+
+        $request = self::singleReceivedRequest();
+        $parts = self::batchSubRequests($request);
+
+        self::assertSame(['comp' => 'batch'], $this->query($request->getUri()));
+        self::assertStringContainsString("DELETE /devstoreaccount1/first/a.txt HTTP/1.1\r\n", $parts[0]);
+        self::assertStringContainsString("DELETE /devstoreaccount1/second/b.txt HTTP/1.1\r\n", $parts[1]);
+    }
+
+    #[Test]
+    public function delete_blobs_signs_sub_requests_with_token_credential(): void
+    {
+        Server::enqueue([self::batchResponse([202, 202]), new Response(501)]);
+
+        $credential = new class implements TokenCredential
+        {
+            public function getToken(TokenRequestContext $context): AccessToken
+            {
+                return new AccessToken('token', new \DateTimeImmutable('+1 hour'), 'Bearer');
+            }
+        };
+
+        $this->batchContainer($credential)->getBlobBatchClient()->deleteBlobs(['a.txt', 'b.txt']);
+
+        foreach (self::batchSubRequests(self::singleReceivedRequest()) as $part) {
+            self::assertStringContainsString("Authorization: Bearer token\r\n", $part);
+        }
+    }
+
+    #[Test]
+    public function delete_blobs_fetches_token_once(): void
+    {
+        Server::enqueue([self::batchResponse([202, 202]), new Response(501)]);
+
+        $credential = new class implements TokenCredential
+        {
+            public int $calls = 0;
+
+            public function getToken(TokenRequestContext $context): AccessToken
+            {
+                $this->calls++;
+
+                return new AccessToken('token', new \DateTimeImmutable('+1 hour'), 'Bearer');
+            }
+        };
+
+        $this->batchContainer($credential)->getBlobBatchClient()->deleteBlobs(['a.txt', 'b.txt']);
+
+        $request = self::singleReceivedRequest();
+
+        self::assertSame('Bearer token', $request->getHeaderLine('Authorization'));
+        self::assertSame(2, substr_count((string) $request->getBody(), "Authorization: Bearer token\r\n"));
+        self::assertSame(1, $credential->calls);
+    }
+
+    #[Test]
+    public function delete_blobs_appends_sas_to_sub_requests(): void
+    {
+        Server::enqueue([self::batchResponse([202, 202, 202]), new Response(501)]);
+
+        $container = new BlobContainerClient(self::serverUri('/devstoreaccount1/test?sv=2025-11-05&sp=d&sig=a%2Bb%3D'));
+        $container->getBlobBatchClient()->deleteBlobs([
+            'a.txt',
+            $container->getBlobClient('b.txt')->withSnapshot('2026-06-28T10:20:30.1234567Z'),
+            $container->getBlobClient('c.txt')->withVersion('2026-06-28T10:20:30.7654321Z'),
+        ]);
+
+        $parts = self::batchSubRequests(self::singleReceivedRequest());
+
+        self::assertStringContainsString("DELETE /devstoreaccount1/test/a.txt?sv=2025-11-05&sp=d&sig=a%2Bb%3D HTTP/1.1\r\n", $parts[0]);
+        self::assertStringContainsString("DELETE /devstoreaccount1/test/b.txt?sv=2025-11-05&sp=d&sig=a%2Bb%3D&snapshot=2026-06-28T10:20:30.1234567Z HTTP/1.1\r\n", $parts[1]);
+        self::assertStringContainsString("DELETE /devstoreaccount1/test/c.txt?sv=2025-11-05&sp=d&sig=a%2Bb%3D&versionid=2026-06-28T10:20:30.7654321Z HTTP/1.1\r\n", $parts[2]);
+
+        foreach ($parts as $part) {
+            self::assertStringNotContainsString('Authorization:', $part);
+        }
+    }
+
+    #[Test]
+    public function delete_blobs_sends_snapshots_option(): void
+    {
+        Server::enqueue([self::batchResponse([202, 202]), new Response(501)]);
+
+        $this->batchContainer()->getBlobBatchClient()->deleteBlobs(['a.txt', 'b.txt'], DeleteSnapshotsOption::INCLUDE_SNAPSHOTS);
+
+        foreach (self::batchSubRequests(self::singleReceivedRequest()) as $part) {
+            self::assertStringContainsString("x-ms-delete-snapshots: include\r\n", $part);
+        }
+    }
+
+    #[Test]
+    public function delete_blobs_throws_batch_exception_for_failed_sub_requests(): void
+    {
+        Server::enqueue([self::batchResponse([202, 404, 412]), new Response(501)]);
+
+        try {
+            $this->batchContainer()->getBlobBatchClient()->deleteBlobs(['a.txt', 'missing.txt', 'leased.txt']);
+
+            self::fail('Expected the batch to fail.');
+        } catch (BlobBatchException $e) {
+            self::assertSame([1, 2], array_column($e->failures, 'index'));
+            self::assertSame(['missing.txt', 'leased.txt'], array_column($e->failures, 'blob'));
+            self::assertSame(BlobErrorCode::BlobNotFound, $e->failures[0]->exception->errorCode);
+            self::assertSame(404, $e->failures[0]->exception->statusCode);
+            self::assertSame('request-1', $e->failures[0]->exception->requestId);
+            self::assertSame('The specified blob does not exist.', $e->failures[0]->exception->getMessage());
+            self::assertSame(BlobErrorCode::LeaseIdMissing, $e->failures[1]->exception->errorCode);
+            self::assertSame(412, $e->failures[1]->exception->statusCode);
+            self::assertSame($e->failures[0]->exception, $e->getPrevious());
+            self::assertSame('batch-request', $e->requestId);
+            self::assertSame(202, $e->statusCode);
+            self::assertSame(
+                '2 of 3 blob batch sub-requests failed: "/devstoreaccount1/test/missing.txt" (BlobNotFound), "/devstoreaccount1/test/leased.txt" (LeaseIdMissing)',
+                $e->getMessage(),
+            );
+        }
+    }
+
+    #[Test]
+    public function delete_blobs_throws_storage_exception_for_rejected_batch(): void
+    {
+        Server::enqueue([
+            new Response(403, ['x-ms-error-code' => 'AuthenticationFailed'], '<Error><Code>AuthenticationFailed</Code><Message>Signature did not match.</Message></Error>'),
+            new Response(501),
+        ]);
+
+        try {
+            $this->batchContainer()->getBlobBatchClient()->deleteBlobs(['a.txt']);
+
+            self::fail('Expected the batch to fail.');
+        } catch (BlobStorageException $e) {
+            self::assertSame(BlobErrorCode::AuthenticationFailed, $e->errorCode);
+            self::assertSame(403, $e->statusCode);
+        }
+    }
+
+    #[Test]
+    public function delete_blobs_throws_storage_exception_for_batch_rejected_in_body(): void
+    {
+        Server::enqueue([
+            new Response(202, ['Content-Type' => 'multipart/mixed; boundary='.self::BATCH_RESPONSE_BOUNDARY, 'x-ms-request-id' => 'batch-request'], '--'.self::BATCH_RESPONSE_BOUNDARY."\r\nContent-Type: application/http\r\n\r\n"
+                ."HTTP/1.1 400 One of the request inputs is not valid.\r\nx-ms-error-code: InvalidInput\r\nx-ms-request-id: request-0\r\nContent-Type: application/xml\r\n\r\n"
+                ."<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<Error><Code>InvalidInput</Code><Message>One of the request inputs is not valid.</Message></Error>\r\n"
+                .'--'.self::BATCH_RESPONSE_BOUNDARY.'--'),
+            new Response(501),
+        ]);
+
+        try {
+            $this->batchContainer()->getBlobBatchClient()->deleteBlobs(['a.txt', 'b.txt']);
+
+            self::fail('Expected the batch to be rejected.');
+        } catch (BlobStorageException $e) {
+            self::assertNotInstanceOf(BlobBatchException::class, $e);
+            self::assertSame(BlobErrorCode::InvalidInput, $e->errorCode);
+            self::assertSame('One of the request inputs is not valid.', $e->getMessage());
+            self::assertSame('request-0', $e->requestId);
+            self::assertSame(400, $e->statusCode);
+        }
+    }
+
+    #[Test]
+    public function delete_blobs_rejects_empty_list(): void
+    {
+        Server::enqueue([new Response(501)]);
+
+        try {
+            $this->batchContainer()->getBlobBatchClient()->deleteBlobs([]);
+
+            self::fail('Expected deleting no blobs to fail.');
+        } catch (\InvalidArgumentException $e) {
+            self::assertSame('Cannot submit an empty batch.', $e->getMessage());
+        }
+
+        self::assertSame([], Server::received());
+    }
+
+    #[Test]
+    public function submit_batch_sends_options_per_operation(): void
+    {
+        Server::enqueue([self::batchResponse([202, 202, 202]), new Response(501)]);
+
+        $batchClient = $this->batchContainer()->getBlobBatchClient();
+        $batch = $batchClient->createBatch();
+        $batch->deleteBlob('a.txt', new DeleteBlobOptions(
+            conditions: new BlobRequestConditions(leaseId: 'lease-id'),
+            snapshotsOption: DeleteSnapshotsOption::INCLUDE_SNAPSHOTS,
+        ));
+        $batch->deleteBlob('b.txt');
+        $batch->deleteBlob('c.txt', new DeleteBlobOptions(snapshotsOption: DeleteSnapshotsOption::ONLY_SNAPSHOTS));
+
+        $batchClient->submitBatch($batch);
+
+        $parts = self::batchSubRequests(self::singleReceivedRequest());
+
+        self::assertCount(3, $parts);
+        self::assertStringContainsString("DELETE /devstoreaccount1/test/a.txt HTTP/1.1\r\n", $parts[0]);
+        self::assertStringContainsString("x-ms-lease-id: lease-id\r\n", $parts[0]);
+        self::assertStringContainsString("x-ms-delete-snapshots: include\r\n", $parts[0]);
+        self::assertStringContainsString("DELETE /devstoreaccount1/test/b.txt HTTP/1.1\r\n", $parts[1]);
+        self::assertStringNotContainsString('x-ms-lease-id', $parts[1]);
+        self::assertStringNotContainsString('x-ms-delete-snapshots', $parts[1]);
+        self::assertStringContainsString("DELETE /devstoreaccount1/test/c.txt HTTP/1.1\r\n", $parts[2]);
+        self::assertStringNotContainsString('x-ms-lease-id', $parts[2]);
+        self::assertStringContainsString("x-ms-delete-snapshots: only\r\n", $parts[2]);
+    }
+
+    #[Test]
+    public function submit_batch_accepts_batch_from_earlier_batch_client(): void
+    {
+        Server::enqueue([self::batchResponse([202]), new Response(501)]);
+
+        $container = $this->batchContainer();
+        $batch = $container->getBlobBatchClient()->createBatch();
+        $batch->deleteBlob('a.txt');
+
+        $container->getBlobBatchClient()->submitBatch($batch);
+
+        self::assertStringContainsString("DELETE /devstoreaccount1/test/a.txt HTTP/1.1\r\n", self::batchSubRequests(self::singleReceivedRequest())[0]);
+    }
+
+    #[Test]
+    public function submit_batch_accepts_batch_from_client_with_same_uri_and_credential(): void
+    {
+        Server::enqueue([self::batchResponse([202]), new Response(501)]);
+
+        $batch = (new BlobBatchClient(self::serverUri('/devstoreaccount1/test'), containerName: 'test'))->createBatch();
+        $batch->deleteBlob('a.txt');
+
+        (new BlobBatchClient(self::serverUri('/devstoreaccount1/test'), containerName: 'test'))->submitBatch($batch);
+
+        self::assertSame(['restype' => 'container', 'comp' => 'batch'], $this->query(self::singleReceivedRequest()->getUri()));
+    }
+
+    #[Test]
+    public function submit_batch_rejects_batch_from_client_with_another_uri(): void
+    {
+        Server::enqueue([new Response(501)]);
+
+        $batch = $this->batchContainer()->getBlobBatchClient()->createBatch();
+        $batch->deleteBlob('a.txt');
+
+        try {
+            (new BlobContainerClient(self::serverUri('/devstoreaccount1/other')))->getBlobBatchClient()->submitBatch($batch);
+
+            self::fail('Expected submitting through another URI to fail.');
+        } catch (\InvalidArgumentException $e) {
+            self::assertSame('The batch was created for a batch client with another URI or credential.', $e->getMessage());
+        }
+
+        self::assertSame([], Server::received());
+    }
+
+    #[Test]
+    public function submit_batch_rejects_submitted_batch(): void
+    {
+        Server::enqueue([self::batchResponse([202]), new Response(501)]);
+
+        $batchClient = $this->batchContainer()->getBlobBatchClient();
+        $batch = $batchClient->createBatch();
+        $batch->deleteBlob('a.txt');
+        $batchClient->submitBatch($batch);
+
+        try {
+            $batchClient->submitBatchAsync($batch);
+
+            self::fail('Expected resubmitting the batch to fail.');
+        } catch (\InvalidArgumentException $e) {
+            self::assertSame('The batch has already been submitted.', $e->getMessage());
+        }
+
+        self::assertCount(1, Server::received());
+    }
+
+    #[Test]
+    public function delete_blob_rejects_submitted_batch(): void
+    {
+        Server::enqueue([self::batchResponse([202]), new Response(501)]);
+
+        $batchClient = $this->batchContainer()->getBlobBatchClient();
+        $batch = $batchClient->createBatch();
+        $batch->deleteBlob('a.txt');
+        $batchClient->submitBatch($batch);
+
+        try {
+            $batch->deleteBlob('b.txt');
+
+            self::fail('Expected adding to a submitted batch to fail.');
+        } catch (\LogicException $e) {
+            self::assertSame('The batch has already been submitted.', $e->getMessage());
+        }
+
+        self::assertCount(1, $batch);
+    }
+
+    #[Test]
+    public function batch_failures_report_blobs_as_given(): void
+    {
+        Server::enqueue([self::batchResponse([202, 404, 404, 404]), new Response(501)]);
+
+        $service = new BlobServiceClient(self::serverUri('/devstoreaccount1'));
+        $snapshot = $service->getContainerClient('other')->getBlobClient('dir/b c.txt')->withSnapshot('2026-06-28T10:20:30.1234567Z');
+
+        try {
+            $service->getBlobBatchClient()->deleteBlobs(['first' => 'test/a.txt', 'second' => '/test/a b.txt', 'third' => $snapshot, 'fourth' => 'test/dir/'], DeleteSnapshotsOption::ONLY_SNAPSHOTS);
+
+            self::fail('Expected the batch to fail.');
+        } catch (BlobBatchException $e) {
+            self::assertSame([1, 2, 3], array_column($e->failures, 'index'));
+            self::assertSame(['/test/a b.txt', $snapshot, 'test/dir/'], array_column($e->failures, 'blob'));
+            self::assertSame(
+                '3 of 4 blob batch sub-requests failed: "/devstoreaccount1/test/a b.txt" (BlobNotFound), "/devstoreaccount1/other/dir/b c.txt?snapshot=2026-06-28T10:20:30.1234567Z" (BlobNotFound), "/devstoreaccount1/test/dir/" (BlobNotFound)',
+                $e->getMessage(),
+            );
+        }
+    }
+
+    #[Test]
+    public function batch_exception_message_names_at_most_five_blobs(): void
+    {
+        Server::enqueue([self::batchResponse(array_fill(0, 7, 404)), new Response(501)]);
+
+        try {
+            $this->batchContainer()->getBlobBatchClient()->deleteBlobs(array_map(static fn (int $i): string => "{$i}.txt", range(0, 6)));
+
+            self::fail('Expected the batch to fail.');
+        } catch (BlobBatchException $e) {
+            self::assertCount(7, $e->failures);
+            self::assertSame(
+                '7 of 7 blob batch sub-requests failed: "/devstoreaccount1/test/0.txt" (BlobNotFound), "/devstoreaccount1/test/1.txt" (BlobNotFound), '
+                .'"/devstoreaccount1/test/2.txt" (BlobNotFound), "/devstoreaccount1/test/3.txt" (BlobNotFound), "/devstoreaccount1/test/4.txt" (BlobNotFound) and 2 more',
+                $e->getMessage(),
+            );
+        }
+    }
+
+    #[Test]
+    public function delete_blobs_rejects_blob_client_from_another_container(): void
+    {
+        Server::enqueue([new Response(501)]);
+
+        $service = new BlobServiceClient(self::serverUri('/devstoreaccount1'));
+
+        try {
+            $service->getContainerClient('test')->getBlobBatchClient()->deleteBlobs([
+                $service->getContainerClient('other')->getBlobClient('a.txt'),
+            ]);
+
+            self::fail('Expected deleting a blob from another container to fail.');
+        } catch (\InvalidArgumentException $e) {
+            self::assertSame('Blob "a.txt" is not in container "test".', $e->getMessage());
+        }
+
+        self::assertSame([], Server::received());
+    }
+
+    private function batchContainer(StorageSharedKeyCredential|TokenCredential|null $credential = null): BlobContainerClient
+    {
+        return new BlobContainerClient(self::serverUri('/devstoreaccount1/test'), $credential);
+    }
+
+    private static function serverUri(string $pathAndQuery): Uri
+    {
+        return new Uri(rtrim(Server::$url, '/').$pathAndQuery);
+    }
+
+    private static function singleReceivedRequest(): RequestInterface
+    {
+        $requests = Server::received();
+
+        self::assertCount(1, $requests);
+
+        return $requests[0];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function batchSubRequests(RequestInterface $request): array
+    {
+        self::assertSame(1, preg_match('/boundary=(batch_[0-9a-f]+)$/', $request->getHeaderLine('Content-Type'), $boundary));
+
+        $parts = explode("--{$boundary[1]}", (string) $request->getBody());
+
+        self::assertSame("--\r\n", array_pop($parts));
+        self::assertSame('', array_shift($parts));
+
+        return $parts;
+    }
+
+    private static function sharedKeyAuthorization(string $stringToSign): string
+    {
+        $key = base64_decode(self::DEVSTORE_ACCOUNT_KEY, true);
+
+        self::assertIsString($key);
+
+        return 'SharedKey devstoreaccount1:'.base64_encode(hash_hmac('sha256', $stringToSign, $key, true));
+    }
+
+    /**
+     * @param  list<int>  $statuses
+     */
+    private static function batchResponse(array $statuses): Response
+    {
+        $parts = [
+            202 => "HTTP/1.1 202 Accepted\r\nx-ms-delete-type-permanent: true\r\nx-ms-request-id: request-%d\r\nx-ms-version: 2026-06-06\r\n\r\n",
+            404 => "HTTP/1.1 404 The specified blob does not exist.\r\nx-ms-error-code: BlobNotFound\r\nx-ms-request-id: request-%d\r\nx-ms-version: 2026-06-06\r\nContent-Length: 216\r\nContent-Type: application/xml\r\n\r\n"
+                ."<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<Error><Code>BlobNotFound</Code><Message>The specified blob does not exist.</Message></Error>\r\n",
+            412 => "HTTP/1.1 412 There is currently a lease on the blob and no lease ID was specified in the request.\r\nx-ms-error-code: LeaseIdMissing\r\nx-ms-request-id: request-%d\r\nx-ms-version: 2026-06-06\r\n\r\n",
+        ];
+
+        $body = '';
+        foreach ($statuses as $contentId => $status) {
+            $body .= '--'.self::BATCH_RESPONSE_BOUNDARY."\r\nContent-Type: application/http\r\nContent-ID: {$contentId}\r\n\r\n".sprintf($parts[$status], $contentId);
+        }
+
+        return new Response(202, [
+            'Content-Type' => 'multipart/mixed; boundary='.self::BATCH_RESPONSE_BOUNDARY,
+            'x-ms-request-id' => 'batch-request',
+        ], $body.'--'.self::BATCH_RESPONSE_BOUNDARY.'--');
     }
 }
