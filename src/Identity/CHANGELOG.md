@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-No user-facing changes since `1.0.4`.
+### Fixed
+
+- Fixed `AccessToken::fromTokenResponse()` computing `expires_in` expiries in wall-clock time, which shifted them by the DST offset when a transition fell within the token lifetime.
 
 ## 1.0.4
 

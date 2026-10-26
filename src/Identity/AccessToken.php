@@ -35,7 +35,7 @@ final class AccessToken
 
         $expiresOn = null;
         if (array_key_exists('expires_in', $data) && is_numeric($data['expires_in'])) {
-            $expiresOn = (new \DateTimeImmutable)->modify("+{$data['expires_in']} seconds");
+            $expiresOn = (new \DateTimeImmutable)->setTimestamp(time() + (int) $data['expires_in']);
         } elseif (array_key_exists('expires_on', $data)) {
             $rawExpiresOn = $data['expires_on'];
             if (is_int($rawExpiresOn) || is_float($rawExpiresOn) || is_string($rawExpiresOn)) {

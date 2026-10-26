@@ -25,6 +25,29 @@ class AccessTokenTest extends TestCase
     }
 
     #[Test]
+    public function from_token_response_expires_in_is_not_shifted_by_dst_transitions(): void
+    {
+        $defaultTimezone = date_default_timezone_get();
+        date_default_timezone_set('Europe/Paris');
+
+        try {
+            $now = time();
+            $transitions = (new \DateTimeZone('Europe/Paris'))->getTransitions($now, $now + 366 * 86400);
+            $expiresIn = $transitions[1]['ts'] - $now + 3600;
+
+            $token = AccessToken::fromTokenResponse(json_encode([
+                'access_token' => 'token',
+                'expires_in' => $expiresIn,
+                'token_type' => 'Bearer',
+            ], JSON_THROW_ON_ERROR));
+
+            self::assertEqualsWithDelta($now + $expiresIn, $token->expiresOn->getTimestamp(), 1);
+        } finally {
+            date_default_timezone_set($defaultTimezone);
+        }
+    }
+
+    #[Test]
     public function from_token_response_accepts_expires_on_epoch(): void
     {
         $token = AccessToken::fromTokenResponse(json_encode([
